@@ -1,0 +1,18 @@
+To install. . .
+
+    perl Makefile.PL
+    make test
+
+If any tests fail, please send me the output of `make test' and `perl -V'.
+
+If the tests pass, type (you'll probably need to use sudo):
+
+    make install
+
+To view documentation type:
+
+    perldoc WWW::Form
+
+If you have problems or suggestions, send me mail:
+
+  perlmods@benschmaus.com
