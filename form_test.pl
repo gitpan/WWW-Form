@@ -51,7 +51,7 @@ HTML
     print "HTTP POST Variables\n<pre>" . Data::Dumper::Dumper($params) .
 		"</pre>";
 
-    # uncomment the following Data::Dummper line if you 
+    # uncomment the following Data::Dummper line if you
     # want to look at the internal structure of the Form module
     #print "Form object\n<pre>" . Data::Dumper::Dumper($form) . "</pre>";
 
@@ -78,7 +78,7 @@ sub getFormStatusMessage() {
     if ($form->isSubmitted($ENV{REQUEST_METHOD})) {
 
         # the form was POSTed so validate the user entered input
-		$form->validateFields($params);
+		$form->validateFields();
 
         # update our status message depending on whether or not the form data
 		# was good if the form data is good then do some stuff
@@ -177,7 +177,7 @@ sub getFormFields {
                     "If you're going to say something, how about at least 10" .
                     " characters?",
                     10,
-                    my $isOptional = 1
+                    1 # Optional field
                 )
             ]
         },

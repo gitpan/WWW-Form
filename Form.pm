@@ -5,7 +5,7 @@ use warnings;
 
 use Data::Dumper;
 
-our $VERSION = "1.09";
+our $VERSION = "1.10";
 
 =head1 NAME
 
@@ -13,8 +13,8 @@ WWW::Form - Simple, extendable OO module for HTML form validation and display
 
 =head1 SYNOPSIS
 
-Simple and extendable module that allows developers to handle form programming
-flexibly and consistently.
+Simple and extendable module that allows developers to handle HTML form
+validation and display flexibly and consistently.
 
 =head1 DESCRIPTION
 
@@ -46,7 +46,7 @@ Before we get too involved in the details, let's take a look at a sample
 usage of the WWW::Form module in a typical setting.  The following example
 uses CGI instead of mod_perl, so if you're using mod_perl, certain pieces of
 the code would look a little different.  The WWW::Form module is used the same
-way in both environments (CGI or mod_perl), though. 
+way in both environments (CGI or mod_perl), though.
 
     #!/usr/bin/perl
     use strict;
@@ -149,7 +149,7 @@ inputs.  The basic structure is as follows:
 
  {
      # UI presentable value that will label the form input
-     label => 'Your name', 
+     label => 'Your name',
      # If set, the form input will be pre-populated with this value
      # you could hard code a default value or use a value retrieved
      # from a data base table, for example
@@ -223,7 +223,7 @@ field was a minimum length, if any input was entered, you would have:
       6, # input must be at least 6 chars
       # input is only validated if user entered something if field left blank,
       # it's OK
-      my $isOptional = 1
+      1 # field is optional
   )
 
 Now for the third parameter.  The third parameter is simply an array reference
@@ -305,7 +305,7 @@ be selected by default, if it is 0 it will not be selected by default.
       validators => []
   }
 
-=head2 Function Reference
+=head1 Function Reference
 
 NOTE: For style conscious developers all public methods are available using
 internalCapsStyle and underscore_separated_style. So 'isSubmitted' is also
@@ -345,11 +345,11 @@ sub new {
     # be a hash of HTTP params needs to have the same keys as fieldsData
     my $fieldValues = shift || {};
 
-    my $self = {};
-
     # Array ref of field name keys that should be in the order that you want
     # to display your form inputs
     my $fieldsOrder = shift || [];
+
+    my $self = {};
 
     $self->{fieldsOrder} = $fieldsOrder;
 
@@ -465,6 +465,29 @@ sub getFields {
 
 *get_fields = \&getFields;
 
+=head1 resetFields
+
+Resets values and default values for all fields
+
+  Example:
+
+  $form->resetFields(include_defaults => 1);
+
+=cut
+sub resetFields {
+    my ($self, %args) = @_;
+    my $fields = $self->getFields();
+
+    for my $fieldName (keys %$fields) {
+        $self->setFieldValue($fieldName, '');
+
+        $self->getField($fieldName)->{defaultValue} = ''
+            if ($args{include_defaults});
+    }
+}
+
+*reset_fields = \&resetFields;
+
 =head2 getField
 
 Returns hash ref of field data that describes the form input that corresponds
@@ -479,7 +502,6 @@ $fieldsData hash ref you used to construct your WWW::Form instance).
 sub getField {
     my $self      = shift;
     my $fieldName = shift;
-
     return $self->{fields}{$fieldName};
 }
 
@@ -533,17 +555,50 @@ Returns the current value of the specified $fieldName.
 
   Example:
 
-  my $comments = $form->getFieldValue('comments');
+  $form->getFieldValue('comments');
 
 =cut
 sub getFieldValue {
     my $self      = shift;
     my $fieldName = shift;
-
     return $self->getField($fieldName)->{value};
 }
 
 *get_field_value = \&getFieldValue;
+
+=head2 isFieldValue
+
+Returns 1 or 0 depending on whether or not the specified field name is valid.
+
+  Example:
+
+  $form->isFieldValid('zip_code');
+
+=cut
+sub isFieldValid {
+    my $self      = shift;
+    my $fieldName = shift;
+
+    return $self->getField($fieldName)->{isValid};
+}
+
+*is_field_valid = \&isFieldValid;
+
+=head2 getFieldValidators
+
+Returns array ref of validators for the passed field name.
+
+  Example:
+
+  $validators = $form->getFieldValidators($fieldName);
+
+=cut
+sub getFieldValidators {
+    my ($self, $fieldName) = @_;
+    return $self->getField($fieldName)->{validators};
+}
+
+*get_field_validators = \&getFieldValidators;
 
 =head2 getFieldType
 
@@ -557,7 +612,6 @@ Returns value of a field's 'type' key for the specified $fieldName.
 sub getFieldType {
     my $self      = shift;
     my $fieldName = shift;
-
     return $self->getField($fieldName)->{type};
 }
 
@@ -702,10 +756,13 @@ sub _setFields {
 
             # See if this checkbox should be checked by default
             $self->{fields}{$fieldName}{defaultChecked} =
-	        $fieldsData->{$fieldName}{defaultChecked};
+                $fieldsData->{$fieldName}{defaultChecked};
         }
         else {
-            if ($fieldValues->{$fieldName}) {
+            # If a key exists in the $fieldValues hashref, use that value
+            # instead of the default, we generally want to favor displaying
+            # user entered values than defaults
+            if (exists($fieldValues->{$fieldName})) {
                 $fieldValue = $fieldValues->{$fieldName};
             }
             else {
@@ -727,13 +784,13 @@ sub _setFields {
         # input if the check box is selected and the form is submitted, see
         # form_test.pl for an example
         $self->{fields}{$fieldName}{defaultValue} =
-			$fieldsData->{$fieldName}{defaultValue};
+            $fieldsData->{$fieldName}{defaultValue};
 
         # The validators for this field, validators are used to test user
         # entered form input to make sure that it the user entered data is
         # acceptable
         $self->{fields}{$fieldName}{validators} =
-			\@{$fieldsData->{$fieldName}{validators}};
+            \@{$fieldsData->{$fieldName}{validators}};
 
         # Type of the form input, i.e. 'radio', 'text', 'select', 'checkbox',
         # etc. this is mainly used to determine what type of HTML method
@@ -772,7 +829,7 @@ sub asString {
 #-----------------------------------------------------------------------------
 # Convenience methods for displaying HTML form data including form inputs,
 # labels, and error feedback
-# 
+#
 # Note: You do not need to use these methods to display your form inputs, but
 # they should be reasonably flexible enough to handle most cases
 #-----------------------------------------------------------------------------
@@ -946,7 +1003,7 @@ is_file_upload - Optional, boolean, should be true if your form contains
 file inputs.
 
   Example:
-  
+
   $form->start_form(
       action => '/some_script.pl',
       name   => 'MyFormName',
@@ -974,7 +1031,7 @@ sub startForm {
     }
 
     my $html = "<form action='$args{action}'"
-        . " method='$method'$name_attributes"; 
+        . " method='$method'$name_attributes";
 
     # If this form contains a file input then set the enctype attribute
     # to multipart/form-data
@@ -1061,8 +1118,6 @@ a file input.
 sub getFormHTML {
     my ($self, %args) = @_;
 
-    #warn("Running WWW::Form->display()");
-
     my $html = $self->startForm(%args) . "\n";
     $html .= "<table>\n";
 
@@ -1103,22 +1158,14 @@ sub _getInputHTML {
     my $field = $self->getField($fieldName);
 
     my $inputHTML = "<input type='$field->{type}'"
-	          . " name='$fieldName' id='$fieldName' value='";
+		. " name='$fieldName' id='$fieldName' value='";
 
-    # Use the user entered input as the value of the value attribute or the
-    # default value if the user didn't entere anything for this form field
-    if (my $userEnteredInput = $field->{value}) {
-        $inputHTML .= $userEnteredInput;
+    if ($field->{type} eq 'checkbox') {
+        $inputHTML .= $field->{defaultValue};
     }
     else {
-        if (defined($field->{defaultValue})) {
-            $inputHTML .= $field->{defaultValue};
-        }
-        else {
-            $inputHTML .= '';
-        }
+        $inputHTML .= $field->{value};
     }
-
     $inputHTML .= "'" . $attributesString  . " />";
 
     return $inputHTML;
@@ -1191,6 +1238,8 @@ sub _getSubmitButtonHTML {
     return $xhtml;
 }
 
+*_get_submit_button_HTML = \&_getSubmitButtonHTML;
+*get_submit_button_HTML = \&_getSubmitButtonHTML;
 
 # Returns HTML to display a checkbox.
 sub _getCheckBoxHTML {
@@ -1242,10 +1291,10 @@ sub _getRadioButtonHTML {
             . $isChecked
             . " /> $label</label><br />";
         }
-    } 
+    }
     else {
         warn(
-			"No option group found for radio button group named: '$fieldName'"
+            "No option group found for radio button group named: '$fieldName'"
         );
     }
     return $inputHTML;
@@ -1260,20 +1309,13 @@ sub _getTextAreaHTML {
     my $field = $self->getField($fieldName);
 
     my $textarea = "<textarea name='" . $fieldName . "'"
-        . $attributesString;
+		. $attributesString;
 
     $textarea .= ">";
 
-    # Use the user entered input as the value of the value attribute or the
-    # default value if the user didn't entere anything for this form field
-    if (my $userEnteredInput = $field->{value}) {
-        $textarea .= $userEnteredInput;
-    }
-    else {
-        $textarea .= $field->{defaultValue};
-    }
+    $textarea .= $field->{value};
 
-    $textarea .= "</textarea>\n";
+    $textarea .= "</textarea>";
 
     return $textarea;
 }
@@ -1342,9 +1384,22 @@ July 3, 2003
 
 Adds code examples to documentation for public methods.
 
+September 25, 2003
+
+Adds new methods including: resetFields(), isFieldValid(), and
+getFieldValidators().
+
+Changes _setFields method to handle empty user values.  That is, in previous
+releases, if a form is submitted and the value for a field is empty, the
+value of the field will be set to the field's default value if it has one.
+This release updates _setFields to prefer submitted values over default
+values.
+
 =head1 TODO
 
 Add more helpful error logging.
+
+Add functionality for generating client side validation.
 
 =head1 BUGS
 
