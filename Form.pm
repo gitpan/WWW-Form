@@ -5,7 +5,7 @@ use warnings;
 
 use Data::Dumper;
 
-our $VERSION = "1.11";
+our $VERSION = "1.12";
 
 =head1 NAME
 
@@ -566,7 +566,7 @@ sub getFieldValue {
 
 *get_field_value = \&getFieldValue;
 
-=head2 isFieldValue
+=head2 isFieldValid
 
 Returns 1 or 0 depending on whether or not the specified field name is valid.
 
@@ -1370,11 +1370,13 @@ to:
 
   http://www.benschmaus.com/cgi-bin/perl/form_test.pl
 
-The following modules are related to WWW:Form and WWW::FieldValidator, you
+The following modules are related to WWW::Form and WWW::FieldValidator, you
 might want to check them out.
 
 Data::FormValidator
+
 Embperl::Form::Validate
+
 HTML::Form
 
 =head1 AUTHOR
@@ -1408,6 +1410,10 @@ This release updates _setFields to prefer submitted values over default
 values.
 
 Fixes some pdoc stuff.
+
+September 26, 2003
+
+More pdoc changes.
 
 =head1 TODO
 
