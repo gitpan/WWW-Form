@@ -4,8 +4,9 @@ use strict;
 use warnings;
 
 use Data::Dumper;
+use CGI;
 
-our $VERSION = "1.12";
+our $VERSION = "1.13";
 
 =head1 NAME
 
@@ -159,7 +160,16 @@ inputs.  The basic structure is as follows:
      type => 'text',
      # An array ref of various validations that should be performed on the
      # user entered input
-     validators => []
+     validators => [],
+     # A hash ref that contains extra HTML attributes to add to the 
+     # container.
+     container_attributes => {},
+     # A hint that will be displayed to the user near the control and its
+     # label to guide him what to fill in that control. (optional)
+     hint => 'text',
+     # A hash ref that contains extra HTML attributes to add to the 
+     # container of the hint.
+     hint_container_attributes => {},
  }
 
 So to create a WWW::Form object with one text box you would have the
@@ -173,7 +183,10 @@ following data structure:
          validators   => [WWW::FieldValidator->new(
              WWW::FieldValidator::WELL_FORMED_EMAIL,
              'Make sure email address is well formed
-         )]
+         )],
+         container_attributes => { 'class' => "green",},
+         hint => "Fill in a valid E-mail address",
+         hint_container_attributes => { 'style' => "border : double", },
      }
  };
 
@@ -642,6 +655,27 @@ sub getFieldLabel {
 
 *get_field_label = \&getFieldLabel;
 
+=head2 getFieldHint
+
+Returns the hint associated with the specified $fieldName or undef if it
+does not exist.
+
+  Example:
+
+  my $hint = $form->getFieldHint('favoriteBand');
+
+=cut
+sub getFieldHint {
+    my $self  = shift;
+    my $fieldName = shift;
+
+    my $field = $self->getField($fieldName);
+
+    return $field->{hint};
+}
+
+*get_field_hint = \&getFieldHint;
+
 =head2 setFieldValue
 
 Sets the value of the specified $fieldName to $value.  You might use this if
@@ -670,7 +704,7 @@ sub setFieldValue {
 
 =head2 isValid
 
-Returns true is all form fields are valid or false otherwise.
+Returns true if all form fields are valid or false otherwise.
 
   Example:
 
@@ -734,6 +768,11 @@ sub _setFields {
     my $self        = shift;
     my $fieldsData  = shift;
     my $fieldValues = shift;
+
+    # TODO :
+    # Create a _setField() method that will encapsulate the functionality
+    # inside the loop. This will enable adding more variables to each field
+    # in the sub-classes more easily.
 
     foreach my $fieldName (keys %{$fieldsData}) {
         # Use the supplied field value if one is given generally the supplied
@@ -799,13 +838,65 @@ sub _setFields {
 
         # If any validators fail, this property will contain the error
         # feedback associated with those failing validators
-        $self->{fields}{$fieldName}{feedback} = ();
+        #
+        # TODO : Added by Shlomif: Should it be a [] ?
+		# 12/28/2003 - Added by Ben Schmaus:
+		#   each field has an array of feedback, right now it's implemented
+		#   as an array () and not an array ref [].  I can't really think
+		#   of a great reason to make this an array reference internally instead
+		#   of an array.
+        # 15-Jan-2004 - Added by Shlomi Fish
+        #   Changing to [] as assigning an array here does not make much 
+        #   sense. (as discussed over IM). A hash value is always a scalar.
+        $self->{fields}{$fieldName}{feedback} = [];
 
         # If the input type is a select box or a radio button then we need an
         # array of labels and values for the radio button group or select box
         # option groups
         if (my $optionsGroup = $fieldsData->{$fieldName}{optionsGroup}) {
             $self->{fields}{$fieldName}{optionsGroup} = \@{$optionsGroup};
+        }
+
+        # Arbitrary HTML attributes that will be used when the field's input
+		# element is displayed.
+        $self->{fields}{$fieldName}{extraAttributes} =
+            ($fieldsData->{$fieldName}{extraAttributes} || "");
+
+        # Add the hint
+		# 12/28/2003 - Added by Ben Schmaus:
+		#   Shlomi, could you please be more specific about the purpose of this
+		#   property?  It doesn't appear to be mentioned anywhere else in the
+		#   documentation.  I assume that this is some helpful text that can
+		#   be displayed if the user enters a field's input incorrectly.  Is that
+		#   right?
+        #
+        # 2004-Jan-04 - Added by Shlomi Fish:
+        #  Ben, no. Actually it's a hint that will always be displayed below
+        #  the table row to instruct the users what to input there. For instance
+        #  +----------+---------------------------+
+        #  |  City:   | [================]        |
+        #  +----------+---------------------------+
+        #  |  Input the city in which you live    |
+        #  |  in.                                 |
+        #  +---------------------------------------
+        #  So "Input the city..." would be the hint.
+        if (my $hint = $fieldsData->{$fieldName}{hint})
+        {
+            $self->{fields}{$fieldName}{hint} = $hint;
+        }
+
+        # Add the container_attributes. These are HTML attributes that would 
+        # be added to the rows of this HTML row.
+        if (my $attribs = $fieldsData->{$fieldName}{container_attributes})
+        {
+            $self->{fields}{$fieldName}{container_attributes} = $attribs;
+        }
+
+        # Add the hint_container_attributes. These are HTML attributes that 
+        # would  be added to the Hint row of this HTML row.
+        if (my $attribs = $fieldsData->{$fieldName}{hint_container_attributes})
+        {
+            $self->{fields}{$fieldName}{hint_container_attributes} = $attribs;
         }
     }
 }
@@ -892,10 +983,19 @@ sub getFieldFormInputHTML {
 
 =head2 getFieldHTMLRow
 
+Note: Need to make sure you can pass in attributesString param unnamed!
+
+    $self->getFieldHTMLRow($fieldName,
+        'attributesString' => $attributesString,
+        'form_args' => \%form_args,
+    );
+
 Returns HTML to display in a web page.  $fieldName is a key of the $fieldsData
 hash that was used to create a WWW::Form object. $attributesString is an
 (optional) arbitrary string of HTML attribute key='value' pairs that you can
-use to add attributes to the form input.
+use to add attributes to the form input. %form_args are the parameters
+passed to the form as a whole, and this function will extract relevant
+parameters out of there.
 
 The only caveat for using this method is that it must be called between
 <table> and </table> tags.  It produces the following output:
@@ -910,34 +1010,76 @@ The only caveat for using this method is that it must be called between
   <td>$fieldFormInput</td>
   </tr>
 
-  Example:
-
-  $form->getFieldHTMLRow('name', " size='6' class='FormField' ");
-
 =cut
+
+sub _render_attributes {
+    my $self = shift;
+    my $attribs = shift;
+
+    # We sort the keys to produce reproducible output on perl 5.8.1 and above
+    # where the order of the hash keys is not deterministic
+    return join("", 
+            map { " $_=\"" . $self->_escapeValue($attribs->{$_}) . "\"" } 
+                (sort {$a cmp $b} keys(%$attribs))
+            );
+}
+
 sub getFieldHTMLRow {
-    my $self             = shift;
-    my $fieldName        = shift;
-    my $attributesString = shift;
+    my $self = shift;
+    my $fieldName = shift;
+
+    my %func_args = (@_);
+    my $attributesString = $func_args{'attributesString'};
+    my $form_args = $func_args{'form_args'};
 
     my $field = $self->getField($fieldName);
+
+    $attributesString ||= $field->{extraAttributes};
 
     my @feedback = $self->getFieldErrorFeedback($fieldName);
 
     my $html = "";
 
-    foreach my $error (@feedback) {
-        $html .= "<tr><td colspan='2'>"
-            . "<span style='color: #ff3300'>$error</span>"
-	        . "</td></tr>\n";
+    my %tr_attributes = ();
+
+    if (exists($field->{container_attributes})) {
+        %tr_attributes = (%tr_attributes, %{$field->{container_attributes}});
     }
 
-    $html .= "<tr><td>" . $self->getFieldLabel($fieldName) . "</td>"
+    my $tr_attr_string = $self->_render_attributes(\%tr_attributes);
+    foreach my $error (@feedback) {
+        $html .= "<tr${tr_attr_string}><td colspan='2'>"
+            . "<span style='color: #ff3300'>$error</span>"
+            . "</td></tr>\n";
+    }
+
+    $html .= "<tr${tr_attr_string}><td>" .
+        $self->getFieldLabel($fieldName) . "</td>"
         . "<td>" . $self->getFieldFormInputHTML(
             $fieldName,
             $attributesString
         )
         . "</td></tr>\n";
+
+    my $hint = $self->getFieldHint($fieldName);
+
+    if (defined($hint)) {
+        my %hint_attributes = ();
+        my $hint_attributes = $form_args->{'hint_container_attributes'};
+
+        if (defined($hint_attributes)) {
+            %hint_attributes = (%hint_attributes, %$hint_attributes);
+        }
+
+        %hint_attributes = (%hint_attributes, %tr_attributes);
+
+        if (exists($field->{hint_container_attributes})) {
+            %hint_attributes = (%hint_attributes, %{$field->{hint_container_attributes}});
+        }
+
+        my $hint_attr_string = $self->_render_attributes(\%hint_attributes);
+        $html .= "<tr${hint_attr_string}><td colspan=\"2\">$hint</td></tr>\n";
+    }
 
     return $html;
 }
@@ -1102,6 +1244,12 @@ HTML attributes.
 is_file_upload - Optional boolean that should be true if your form contains
 a file input.
 
+hint_container_attributes - Optional HTML attributes for all the table rows 
+containing the hints.
+
+buttons - Use this if you want your form to have multiple submit buttons.  See
+API documentation for getSubmitButtonHTML() for more info on this parameter.
+
   Example:
 
   print $form->getFormHTML(
@@ -1124,7 +1272,10 @@ sub getFormHTML {
     # Go through all of our form fields and build an HTML input for each field
     for my $fieldName (@{$self->getFieldsOrder()}) {
         #warn("field name is: $fieldName");
-        $html .= $self->getFieldHTMLRow($fieldName);
+        $html .= $self->getFieldHTMLRow(
+            $fieldName,
+            'form_args' => \%args,
+        );
     }
 
     $html .= "</table>\n";
@@ -1138,7 +1289,7 @@ sub getFormHTML {
     }
 
     # Add submit button
-    $html .= $self->_getSubmitButtonHTML(%args) . "\n";
+    $html .= "<p>" . $self->_getSubmitButtonHTML(%args) . "</p>\n";
 
     return $html . $self->endForm() . "\n";
 }
@@ -1158,37 +1309,56 @@ sub _getInputHTML {
     my $field = $self->getField($fieldName);
 
     my $inputHTML = "<input type='$field->{type}'"
-		. " name='$fieldName' id='$fieldName' value='";
+		. " name='$fieldName' id='$fieldName' value=\"";
 
+    my $value_to_put;
     if ($field->{type} eq 'checkbox') {
-        $inputHTML .= $field->{defaultValue};
+        $value_to_put = $field->{defaultValue};
     }
     else {
-        $inputHTML .= $field->{value};
+        $value_to_put = $field->{value};
     }
-    $inputHTML .= "'" . $attributesString  . " />";
+    $inputHTML .= $self->_escapeValue($value_to_put);
+
+    $inputHTML .= "\"" . $attributesString  . " />";
 
     return $inputHTML;
 }
 
 
-# Used by get_form_HTML to get HTML to display a type of a submit button.
-#
-# Returns string of HTML.
-#
-# Arguments:
-# submit_type - 'submit' or 'image', defaults to 'submit' if not specified.
-#
-# submit_src - If type is 'image', this specifies the image to use.
-#
-# submit_label - Optional label for the button, defaults to 'Submit'.
-#
-# submit_class - Optional value for class attribute.
-#
-# submit_attributes - Optional hash ref of name => value pairs used to specify
-# arbitrary attributes.
-sub _getSubmitButtonHTML {
+=head2 getSubmitButtonHTML
+
+Used by get_form_HTML to get HTML to display a type of a submit button.
+
+Returns string of HTML.
+
+Arguments:
+submit_type - 'submit' or 'image', defaults to 'submit' if not specified.
+
+submit_src - If type is 'image', this specifies the image to use.
+
+submit_label - Optional label for the button, defaults to 'Submit'.
+
+submit_class - Optional value for class attribute.
+
+submit_attributes - Optional hash ref of name => value pairs used to specify
+arbitrary attributes.
+
+buttons - Optional, array reference of hash refs of the previous arguments.
+You can use this parameter if you want your form to have multiple submit
+buttons.
+
+=cut
+sub getSubmitButtonHTML {
     my ($class, %args) = @_;
+
+    if (exists($args{buttons})) {
+        my $xhtml;
+        foreach my $button (@{$args{buttons}}) {
+            $xhtml .= $class->_getSubmitButtonHTML(%$button);
+        }
+        return $xhtml;
+    }
 
     my $type = $args{submit_type} || 'submit';
 
@@ -1227,6 +1397,11 @@ sub _getSubmitButtonHTML {
         $xhtml .= " id='$args{submit_class}'";
     }
 
+    if ($args{submit_name}) {
+        $xhtml .= " name='$args{submit_name}'";
+
+    }
+
     # Add any other attribute name value pairs that the developer may want to
     # enter
     for my $attribute (keys %{$attributes}) {
@@ -1234,12 +1409,15 @@ sub _getSubmitButtonHTML {
     }
 
     $xhtml =~ s/\s$//; # Remove trailing whitespace
-    $xhtml .= "/>\n";
+    $xhtml .= " />\n";
     return $xhtml;
 }
 
-*_get_submit_button_HTML = \&_getSubmitButtonHTML;
-*get_submit_button_HTML = \&_getSubmitButtonHTML;
+# We have lots of names for this method.  It used to be private, but now it's
+# public.
+*_get_submit_button_HTML = \&getSubmitButtonHTML;
+*get_submit_button_HTML = \&getSubmitButtonHTML;
+*_getSubmitButtonHTML = \&getSubmitButtonHTML;
 
 # Returns HTML to display a checkbox.
 sub _getCheckBoxHTML {
@@ -1284,10 +1462,10 @@ sub _getRadioButtonHTML {
             }
 
 	    $inputHTML .= "<input type='$field->{type}'"
-	        . " name='$fieldName' value='";
+	        . " name='$fieldName'";
 
-	    $inputHTML .= "$value'"
-            . $attributesString
+        $inputHTML .= " value=\"". $self->_escapeValue($value) . "\" ";
+	    $inputHTML .= $attributesString
             . $isChecked
             . " /> $label</label><br />";
         }
@@ -1313,7 +1491,11 @@ sub _getTextAreaHTML {
 
     $textarea .= ">";
 
-    $textarea .= $field->{value};
+    # 16-Jan-2003: Added by Shlomi Fish
+    # TODO :
+    # There seems to be an HTML injection bug here.
+
+    $textarea .= $self->_escapeValue($field->{value});
 
     $textarea .= "</textarea>";
 
@@ -1346,7 +1528,8 @@ sub _getSelectBoxHTML {
             else {
                 $isSelected = "";
             }
-            $html .= "<option value='$value'${isSelected}>$label</option>\n";
+            $html .= "<option value=\"" . $self->_escapeValue($value)
+				. "\"${isSelected}>$label</option>\n";
         }
     }
     else {
@@ -1355,6 +1538,13 @@ sub _getSelectBoxHTML {
 
     $html .= "</select>\n";
     return $html;
+}
+
+sub _escapeValue {
+    my $self = shift;
+    my $string = shift;
+
+    return CGI::escapeHTML($string);
 }
 
 1;
@@ -1415,15 +1605,27 @@ September 26, 2003
 
 More pdoc changes.
 
+January 10, 2004
+
+Adds support for displaying multiple submit buttons.
+
+Adds new public method: getSubmitButtonHTML.
+
+Adds support for escaping the value of HTML input 'value' attributes.
+
 =head1 TODO
 
 Add more helpful error logging.
 
 Add functionality for generating client side validation.
 
+=head1 THANKS
+
+Thanks to Shlomi Fish for suggestions and code submissions.
+
 =head1 BUGS
 
-None that I know of, but please let me know if you find any.
+Nothing that I'm aware of, but please let me know if you have any problems.
 
 Send email to perlmods@benschmaus.com.
 

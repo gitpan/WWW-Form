@@ -315,30 +315,4 @@ get_feedback().
 
 WWW::Form
 
-=head1 AUTHOR
-
-Ben Schmaus
-
-If you find this module useful or have any suggestions or comments please send
-me an email at perlmods@benschmaus.com.
-
-=head1 BUGS
-
-None that I know of, but let me know if you find any.
-
-Send email to perlmods@benschmaus.com
-
-=head1 CHANGELOG
-
-July 2, 2003
-
-Code formatting and cleanup.
-
-=head1 COPYRIGHT
-
-Copyright 2003, Ben Schmaus.  All Rights Reserved.
-
-This program is free software.  You may copy or redistribute it under the same
-terms as Perl itself.  If you find this module useful, please let me know.
-
 =cut
