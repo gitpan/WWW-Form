@@ -15,7 +15,7 @@ use warnings;
 # for handling HTML forms
 package WWW::Form;
 
-our $VERSION = "1.00";
+our $VERSION = "1.01";
 
 # Constructor for Form class
 # creates an instance of a Form object
@@ -1093,11 +1093,10 @@ to convert a user entered value to some other value.
 
 =head1 SEE ALSO
 
-=begin html
-
 WWW::FieldValidator
 
-=end html
+Note: If you want to use the validation features of WWW::Form you will need
+to install WWW::FieldValidator also.
 
 =cut
 
@@ -1105,11 +1104,16 @@ WWW::FieldValidator
 
 Ben Schmaus
 
+If you find this module useful or have any suggestions or comments please
+send me an email at perlmods@benschmaus.com.
+
 =cut
 
 =head1 BUGS
 
 Known that I know of, but please let me know if you find any.
+
+Send email to perlmods@benschmaus.com.
 
 =cut
 
