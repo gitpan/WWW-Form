@@ -1,4 +1,0 @@
-July 2, 2003
-
-  Code formatting changes and cleanup to Form.pm and FieldValidator.pm
-  Added support for file inputs to Form.pm

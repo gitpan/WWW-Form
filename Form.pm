@@ -5,7 +5,7 @@ use warnings;
 
 use Data::Dumper;
 
-our $VERSION = "1.08";
+our $VERSION = "1.09";
 
 =head1 NAME
 
@@ -375,8 +375,8 @@ can just use your hash ref of HTTP $params, i.e. $r->param()).
   Example:
 
   if ($form->isSubmitted($r->method)) {
-    # validate fields because form was POSTed
-    $form->validateFields();
+      # validate fields because form was POSTed
+      $form->validateFields();
   }
 
 =cut
@@ -453,6 +453,10 @@ sub validateFields {
 
 Returns hash ref of fields data.
 
+  Example:
+
+  my $fields = $form->getFields();
+
 =cut
 sub getFields {
     my $self = shift;
@@ -464,7 +468,12 @@ sub getFields {
 =head2 getField
 
 Returns hash ref of field data that describes the form input that corresponds
-to the passed $fieldName.
+to the passed $fieldName ($fieldName should be a value of a key in the
+$fieldsData hash ref you used to construct your WWW::Form instance).
+
+  Example:
+
+  my $field = $form->getField('address');
 
 =cut
 sub getField {
@@ -480,6 +489,10 @@ sub getField {
 
 Returns an array of all the error feedback (if any) for the specified
 $fieldName.
+
+  Example:
+
+  my $name_feedback = $form->getFieldErrorFeedback('fullName');
 
 =cut
 sub getFieldErrorFeedback {
@@ -502,6 +515,10 @@ sub getFieldErrorFeedback {
 
 Returns array ref of field names in the order they should be displayed.
 
+  Example:
+
+  $form->getFieldsOrder();
+
 =cut
 sub getFieldsOrder {
     my $self = shift;
@@ -513,6 +530,10 @@ sub getFieldsOrder {
 =head2 getFieldValue
 
 Returns the current value of the specified $fieldName.
+
+  Example:
+
+  my $comments = $form->getFieldValue('comments');
 
 =cut
 sub getFieldValue {
@@ -526,7 +547,11 @@ sub getFieldValue {
 
 =head2 getFieldType
 
-Returns value of a field's 'type' key.
+Returns value of a field's 'type' key for the specified $fieldName.
+
+  Example:
+
+  my $input_type = $form->getFieldType('favoriteColor');
 
 =cut
 sub getFieldType {
@@ -541,6 +566,10 @@ sub getFieldType {
 =head2 getFieldLabel
 
 Returns the label associated with the specified $fieldName.
+
+  Example:
+
+  my $ui_label = $form->getFieldLabel('favoriteBand');
 
 =cut
 sub getFieldLabel {
@@ -563,6 +592,10 @@ sub getFieldLabel {
 
 Sets the value of the specified $fieldName to $value.  You might use this if
 you need to convert a user entered value to some other value.
+
+  Example:
+
+  $form->setFieldValue('fullName', uc($form->getFieldValue('fullName')));
 
 =cut
 sub setFieldValue {
@@ -616,7 +649,9 @@ to override this method in a subclass.
   Example:
 
   # Returns true if HTTP method is POST
-  $form->isSubmitted($r->method());
+  if ($form->isSubmitted($r->method())) {
+      print "You submitted the form.";
+  }
 
 =cut
 sub isSubmitted {
@@ -692,13 +727,13 @@ sub _setFields {
         # input if the check box is selected and the form is submitted, see
         # form_test.pl for an example
         $self->{fields}{$fieldName}{defaultValue} =
-	    $fieldsData->{$fieldName}{defaultValue};
+			$fieldsData->{$fieldName}{defaultValue};
 
         # The validators for this field, validators are used to test user
         # entered form input to make sure that it the user entered data is
         # acceptable
         $self->{fields}{$fieldName}{validators} =
-	    \@{$fieldsData->{$fieldName}{validators}};
+			\@{$fieldsData->{$fieldName}{validators}};
 
         # Type of the form input, i.e. 'radio', 'text', 'select', 'checkbox',
         # etc. this is mainly used to determine what type of HTML method
@@ -718,7 +753,15 @@ sub _setFields {
     }
 }
 
-# Returns a string representation of the current instance
+=head2
+
+Returns a string representation of the current instance.
+
+  Example:
+
+  &LOG->debug("WWW::Form instance: " . $form->asString());
+
+=cut
 sub asString {
     my $self = shift;
     return Data::Dumper::Dumper($self);
@@ -740,6 +783,13 @@ Returns an HTML form input for the specified $fieldName. $attributesString is
 an (optional) arbitrary string of HTML attribute key='value' pairs that you
 can use to add attributes to the form input, such as size='20' or
 onclick='someJSFunction()', and so forth.
+
+  Example:
+
+  $html .= $form->getFieldFormInputHTML(
+      'password',
+      " size='6' class='PasswordInput' "
+  );
 
 =cut
 sub getFieldFormInputHTML {
@@ -805,7 +855,7 @@ The only caveat for using this method is that it must be called between
 
   Example:
 
-  $form->getFieldHTMLRow('name', " size='6' class='formField' ");
+  $form->getFieldHTMLRow('name', " size='6' class='FormField' ");
 
 =cut
 sub getFieldHTMLRow {
@@ -830,7 +880,7 @@ sub getFieldHTMLRow {
             $fieldName,
             $attributesString
         )
-	    . "</td></tr>\n";
+        . "</td></tr>\n";
 
     return $html;
 }
@@ -857,6 +907,10 @@ Returns following HTML:
 Note: If you use this, you should implement a CSS class named 'feedback' that
 styles your error messages appropriately.
 
+  Example:
+
+  $html .= $form->getFieldFeedbackHTML('emailAddress');
+
 =cut
 sub getFieldFeedbackHTML {
     my $self      = shift;
@@ -880,14 +934,27 @@ sub getFieldFeedbackHTML {
 
 Returns an opening HTML form tag.
 
-Example:
+Arguments:
+
+name - Value of HTML name attribute.
+
+action - Value of action HTML attribute.
+
+attributes - Optional hash ref of HTML attribute name value pairs.
+
+is_file_upload - Optional, boolean, should be true if your form contains
+file inputs.
+
+  Example:
+  
   $form->start_form(
       action => '/some_script.pl',
       name   => 'MyFormName',
       attributes => {class => 'MyFormClass'}
   );
 
-  Would return HTML similar to:
+Returns HTML similar to:
+
   <form action='/some_script.pl'
         method='post'
         name='MyFormName'
@@ -931,6 +998,10 @@ sub startForm {
 
 Returns HTML to close form.
 
+  Example:
+
+  $html .= $form->endForm();
+
 =cut
 sub endForm {
     my $self = shift;
@@ -969,7 +1040,22 @@ be specified with submit_src, e.g. submit_src => './img/submit_button.png'.
 submit_class - Optional string that specifies a CSS class.
 
 submit_attributes -  Optional hash ref of arbitrary name => 'value'
-attributes.
+HTML attributes.
+
+is_file_upload - Optional boolean that should be true if your form contains
+a file input.
+
+  Example:
+
+  print $form->getFormHTML(
+      action => './my_form.pl',
+      name => 'LoginForm',
+      attributes => {
+          class => 'FormBlueBackground'
+      },
+      submit_label => 'Login',
+      is_file_upload => 1
+  );
 
 =cut
 sub getFormHTML {
@@ -1152,14 +1238,14 @@ sub _getRadioButtonHTML {
 	        . " name='$fieldName' value='";
 
 	    $inputHTML .= "$value'"
-                . $attributesString
-		. $isChecked
-		. " /> $label</label><br />";
+            . $attributesString
+            . $isChecked
+            . " /> $label</label><br />";
         }
     } 
     else {
         warn(
-	    "No option group found for radio button group named: '$fieldName'"
+			"No option group found for radio button group named: '$fieldName'"
         );
     }
     return $inputHTML;
@@ -1174,7 +1260,7 @@ sub _getTextAreaHTML {
     my $field = $self->getField($fieldName);
 
     my $textarea = "<textarea name='" . $fieldName . "'"
-	         . $attributesString;
+        . $attributesString;
 
     $textarea .= ">";
 
@@ -1251,6 +1337,10 @@ July 2, 2003
 Code formatting and cleanup.
 
 Adds support for file inputs.
+
+July 3, 2003
+
+Adds code examples to documentation for public methods.
 
 =head1 TODO
 
