@@ -15,7 +15,7 @@ use warnings;
 # for handling HTML forms
 package WWW::Form;
 
-our $VERSION = "1.01";
+our $VERSION = "1.02";
 
 # Constructor for Form class
 # creates an instance of a Form object
@@ -650,10 +650,7 @@ WWW::Form
 
 =head1 SYNOPSIS
 
-The WWW::Form module provides a simple framework for 
-programming and dealing with HTML forms.  It provides a simple
-API which allows developers to deal with web form programming quickly,
-flexibly, and consistently.
+WWW::Form - Simple, Extendable OO module for form validation and display
 
 =cut
 
@@ -1111,7 +1108,7 @@ send me an email at perlmods@benschmaus.com.
 
 =head1 BUGS
 
-Known that I know of, but please let me know if you find any.
+None that I know of, but please let me know if you find any.
 
 Send email to perlmods@benschmaus.com.
 

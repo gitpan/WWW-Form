@@ -1,10 +1,10 @@
 To install this module:
 
-Uncompress and untar WWW-Form-1.00 using gunzip and tar.
+Uncompress and untar WWW-Form-1.02 using gunzip and tar.
 
-gunzip WWW-Form-1.00
+gunzip WWW-Form-1.02
 
-tar -xvf WWW-Form-1.00
+tar -xvf WWW-Form-1.02
 
 Then follow the standard steps for installing a Perl module.
 
