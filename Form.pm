@@ -5,7 +5,7 @@ use warnings;
 
 use Data::Dumper;
 
-our $VERSION = "1.10";
+our $VERSION = "1.11";
 
 =head1 NAME
 
@@ -305,7 +305,7 @@ be selected by default, if it is 0 it will not be selected by default.
       validators => []
   }
 
-=head1 Function Reference
+=head1 FUNCTION REFERENCE
 
 NOTE: For style conscious developers all public methods are available using
 internalCapsStyle and underscore_separated_style. So 'isSubmitted' is also
@@ -465,7 +465,7 @@ sub getFields {
 
 *get_fields = \&getFields;
 
-=head1 resetFields
+=head2 resetFields
 
 Resets values and default values for all fields
 
@@ -810,7 +810,7 @@ sub _setFields {
     }
 }
 
-=head2
+=head2 asString
 
 Returns a string representation of the current instance.
 
@@ -1365,6 +1365,18 @@ __END__
 
 WWW::FieldValidator
 
+To see a demo of WWW::Form and WWW::FieldValidator point your web browser
+to:
+
+  http://www.benschmaus.com/cgi-bin/perl/form_test.pl
+
+The following modules are related to WWW:Form and WWW::FieldValidator, you
+might want to check them out.
+
+Data::FormValidator
+Embperl::Form::Validate
+HTML::Form
+
 =head1 AUTHOR
 
 Ben Schmaus
@@ -1394,6 +1406,8 @@ releases, if a form is submitted and the value for a field is empty, the
 value of the field will be set to the field's default value if it has one.
 This release updates _setFields to prefer submitted values over default
 values.
+
+Fixes some pdoc stuff.
 
 =head1 TODO
 
