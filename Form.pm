@@ -15,7 +15,7 @@ use warnings;
 # for handling HTML forms
 package WWW::Form;
 
-our $VERSION = "1.02";
+our $VERSION = "1.03";
 
 # Constructor for Form class
 # creates an instance of a Form object
@@ -644,13 +644,14 @@ __END__
 
 =head1 NAME
 
-WWW::Form
+WWW::Form - Simple, Extendable OO module for form validation and display
 
 =cut
 
 =head1 SYNOPSIS
 
-WWW::Form - Simple, Extendable OO module for form validation and display
+Simple and easily extendable module that allows developers to handle form
+programming quickly, flexibly, and consistently.
 
 =cut
 
