@@ -4,7 +4,7 @@ package WWW::Form;
 use strict;
 use warnings;
 
-our $VERSION = "1.06";
+our $VERSION = "1.07";
 
 =head1 NAME
 
@@ -31,7 +31,7 @@ specified default values
 
 =item * handles presenting customizable error feedback to users
 
-=item * is easily extended, the WWW::Form module is designed to be easily inherited
+=item * is easily extended, the WWW::Form module is designed to be inherited
 from, so you can add your own features.
 
 =back
@@ -286,7 +286,7 @@ using internalCapsStyle and underscore_separated_style. So 'isSubmitted'
 is also available as 'is_submitted', and 'getFieldHTMLRow' is also available
 as 'get_field_HTML_row', and so on and so forth.
 
-=head1 new
+=head2 new
 
 Creates a WWW::Form object.  $fieldsData is a hash reference that describes your WWW::Form object. (See
 instantiating a WWW::Form object above.) $fieldsValues (i.e., $params below) has keys identical to $fieldsData.
@@ -338,7 +338,7 @@ sub new {
     return $self;
 }
 
-=head1 validateFields
+=head2 validateFields
 
 Validates field's values input according to the validators (WWW::FieldValidators) that
 were specified when the WWW::Form object was created.  This will also set error feedback as
@@ -426,7 +426,7 @@ sub validateFields {
 
 *validate_fields = \&validateFields;
 
-=head1 getFields
+=head2 getFields
 
 Returns hash ref of fields data.
 
@@ -439,7 +439,7 @@ sub getFields {
 
 *get_fields = \&getFields;
 
-=head1 getField
+=head2 getField
 
 Returns hash ref of field data that describes the form
 input that corrsponds to the passed $fieldName.
@@ -454,7 +454,7 @@ sub getField {
 
 *get_field = \&getField;
 
-=head1 getFieldErrorFeedback
+=head2 getFieldErrorFeedback
 
 Returns an array of all the error feedback (if any) for the specified $fieldName.
 
@@ -477,7 +477,7 @@ sub getFieldErrorFeedback {
 
 *get_field_error_feedback = \&getFieldErrorFeedback;
 
-=head1 getFieldsOrder
+=head2 getFieldsOrder
 
 Returns array ref of field names in the order
 they should be displayed.
@@ -490,7 +490,7 @@ sub getFieldsOrder {
 
 *get_fields_order = \&getFieldsOrder;
 
-=head1 getFieldValue
+=head2 getFieldValue
 
 Returns the current value of the specified $fieldName.
 
@@ -504,7 +504,7 @@ sub getFieldValue {
 
 *get_field_value = \&getFieldValue;
 
-=head1 getFieldType
+=head2 getFieldType
 
 Returns value of a field's 'type' key.
 
@@ -518,7 +518,7 @@ sub getFieldType {
 
 *get_field_type = \&getFieldType;
 
-=head1 getFieldLabel
+=head2 getFieldLabel
 
 Returns the label associated with the specified $fieldName.
 
@@ -539,7 +539,7 @@ sub getFieldLabel {
 
 *get_field_label = \&getFieldLabel;
 
-=head1 setFieldValue
+=head2 setFieldValue
 
 Sets the value of the specified $fieldName to $value.  You might use this if you need
 to convert a user entered value to some other value.
@@ -560,7 +560,7 @@ sub setFieldValue {
 
 *set_field_value = \&setFieldValue;
 
-=head1 isValid
+=head2 isValid
 
 Returns true is all form fields are valid or false otherwise.
 
@@ -585,7 +585,7 @@ sub isValid {
 
 *is_valid = \&isValid;
 
-=head1 isSubmitted
+=head2 isSubmitted
 
 Returns true if the HTTP request method is POST.  If for
 some reason you're using GET to submit
@@ -705,7 +705,7 @@ sub _setFields {
 # should be reasonably flexible enough to
 # handle most cases
 #-------------------------------------------#
-=head1 getFieldFormInputHTML
+=head2 getFieldFormInputHTML
 
 Returns an HTML form input for the specified $fieldName. $attributesString is an (optional) arbitrary
 string of HTML attribute key='value' pairs that you can use to add attributes to the form
@@ -754,7 +754,7 @@ sub getFieldFormInputHTML {
 
 *get_field_form_input_HTML = \&getFieldFormInputHTML;
 
-=head1 getFieldHTMLRow
+=head2 getFieldHTMLRow
 
 Returns HTML to display in a web page.  $fieldName is a key of the $fieldsData hash
 that was used to create a WWW::Form object. $attributesString is an (optional) arbitrary
@@ -804,7 +804,7 @@ sub getFieldHTMLRow {
 
 *get_field_HTML_row = \&getFieldHTMLRow;
 
-=head1 getFieldFeedbackHTML
+=head2 getFieldFeedbackHTML
 
 Returns HTML error content for each vaildator belonging to $fieldName that doesn't pass validation.
 
@@ -842,7 +842,7 @@ sub getFieldFeedbackHTML {
 
 *get_field_feedback_HTML = \&getFieldFeedbackHTML;
 
-=head1 startForm
+=head2 startForm
 
 Title:     startForm
 
@@ -887,7 +887,7 @@ sub startForm {
 
 *start_form = \&startForm;
 
-=head1 endForm
+=head2 endForm
 
 Returns HTML to close form.
 
@@ -899,11 +899,11 @@ sub endForm {
 
 *end_form = \&endForm;
 
-=head1 getFormHTML
+=head2 getFormHTML
 
 Title:     get_form_HTML
 
-Usage:     $form->get_form_HTML();
+Usage:     $form->get_form_HTML(action => 'some_script.pl');
 
 Functions: Loops through the fieldsOrder array and builds
            markup for each form input in your form.
