@@ -1,0 +1,12 @@
+To install this module:
+
+Uncompress and untar the most recent version of WWW::Form using gunzip and tar.
+
+Then follow the standard steps for installing a Perl module.
+
+perl Makefile.PL
+make test
+make install
+
+Note: If you want to use the validation features of WWW::Form you will also need
+to install WWW::FieldValidator.

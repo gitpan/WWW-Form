@@ -15,7 +15,7 @@ use warnings;
 # for handling HTML forms
 package WWW::Form;
 
-our $VERSION = "1.03";
+our $VERSION = "1.04";
 
 # Constructor for Form class
 # creates an instance of a Form object
@@ -644,16 +644,12 @@ __END__
 
 =head1 NAME
 
-WWW::Form - Simple, Extendable OO module for form validation and display
-
-=cut
+WWW::Form - Simple and extendable OO module for form validation and display
 
 =head1 SYNOPSIS
 
 Simple and easily extendable module that allows developers to handle form
 programming quickly, flexibly, and consistently.
-
-=cut
 
 =head1 DESCRIPTION
 
@@ -923,10 +919,6 @@ POST params.  If defaultChecked is 1 the checkbox will be selected by default, i
    validators => []
  } 
 
-=cut
-
-=cut
-
 =head2 Function Reference
 
 The following section details the public API of the Form module.
@@ -957,7 +949,6 @@ reference of HTTP POST variables.
   }
 
 
-
 B<isSubmitted($HTTPRequestMethod)>
 
 Returns true if the HTTP request method is POST.  If for some reason you're using GET to submit
@@ -967,7 +958,6 @@ a form then this method won't be of much help.
 
   # returns true if HTTP method is POST
   $form->isSubmitted($r->method());
-
 
 
 B<validateFields($params)>
@@ -987,7 +977,6 @@ that are not valid.
   }
 
 
-
 B<isValid()>
 
 Returns true is all form fields are valid or false otherwise.
@@ -1004,7 +993,6 @@ Returns true is all form fields are valid or false otherwise.
         # the validation passed for all the form inputs
     }
   }
-
 
 
 B<getFieldHTMLRow($fieldName, [$attributesString])>
@@ -1087,16 +1075,12 @@ B<setFieldValue($fieldName, $value)>
 Sets the value of the specified $fieldName to $value.  You might use this if you need
 to convert a user entered value to some other value.
 
-=cut
-
 =head1 SEE ALSO
 
 WWW::FieldValidator
 
 Note: If you want to use the validation features of WWW::Form you will need
 to install WWW::FieldValidator also.
-
-=cut
 
 =head1 AUTHOR
 
@@ -1105,15 +1089,11 @@ Ben Schmaus
 If you find this module useful or have any suggestions or comments please
 send me an email at perlmods@benschmaus.com.
 
-=cut
-
 =head1 BUGS
 
 None that I know of, but please let me know if you find any.
 
 Send email to perlmods@benschmaus.com.
-
-=cut
 
 =head1 COPYRIGHT
 
