@@ -1,13 +1,12 @@
 #!/usr/bin/perl
 
-#-----------------------------------------------#
-# Use this program to get a feel for
-# how to use WWW::Form and WWW::FieldValidator
+#-----------------------------------------------------------------------------
+# Use this program to get a feel for how to use WWW::Form and
+# WWW::FieldValidator
 #
-# This program must be placed in a web 
-# accessible and CGI executable location
+# This program must be placed in a web accessible and CGI executable location
 # in order for it to run properly
-#-----------------------------------------------#
+#-----------------------------------------------------------------------------
 
 use strict;
 use warnings;
@@ -15,8 +14,7 @@ use warnings;
 use CGI;
 use Data::Dumper;
 
-# both of these need to be installed to run this
-# test program
+# both of these need to be installed to run this test program
 use WWW::Form;
 use WWW::FieldValidator;
 
@@ -32,10 +30,9 @@ my $form = WWW::Form->new(getFormFields(), $params, getFieldsOrder());
 # display the HTML form test page
 printHTMLPage();
 
-#-----------------------------------#
-# Start subroutines needed to build
-# Form test page
-#-----------------------------------#
+#-----------------------------------------------------------------------------
+# Start subroutines needed to build form test page
+#-----------------------------------------------------------------------------
 
 sub printHTMLPage {
 
@@ -51,7 +48,8 @@ HTML
     print "<p>WWW::Form version: $WWW::Form::VERSION<br />";
     print "WWW::FieldValidator version: $WWW::FieldValidator::VERSION</p>";
 
-    print "HTTP POST Variables\n<pre>" . Data::Dumper::Dumper($params) . "</pre>";
+    print "HTTP POST Variables\n<pre>" . Data::Dumper::Dumper($params) .
+		"</pre>";
 
     # uncomment the following Data::Dummper line if you 
     # want to look at the internal structure of the Form module
@@ -59,7 +57,10 @@ HTML
 
     print "\n<h2>" . getFormStatusMessage() . "</h2>\n";
 
-    print $form->getFormHTML(action => 'form_test.pl');
+    print $form->getFormHTML(
+		action => 'form_test.pl',
+		is_file_upload => 1,
+	);
 
 print <<HTML;
 </body>
@@ -67,121 +68,154 @@ print <<HTML;
 HTML
 }
 
-# uses the isSubmitted, validateFields, and isValid methods
-# of WWW::Form object
+# uses the isSubmitted, validateFields, and isValid methods of WWW::Form
+# object
 sub getFormStatusMessage() {
-    # init status message to display
-    # in the form test web page
+    # init status message to display in the form test web page
     my $formStatusMessage = 'Form has not been submitted';
 
     # check to see that the form was submitted
     if ($form->isSubmitted($ENV{REQUEST_METHOD})) {
 
-        # the form was POSTed so
-        # validate the user entered input
-	$form->validateFields($params);
+        # the form was POSTed so validate the user entered input
+		$form->validateFields($params);
 
-        # update our status message depending on
-	# whether or not the form data was good
-        # if the form data is good then do some stuff
-	if ($form->isValid()) {
-	    $formStatusMessage = 'Form was submitted and the data is good';
-	} else {
-	    $formStatusMessage = 'Form was submitted and the data is bad';
-	}
+        # update our status message depending on whether or not the form data
+		# was good if the form data is good then do some stuff
+		if ($form->isValid()) {
+			$formStatusMessage = 'Form was submitted and the data is good';
+		}
+		else {
+			$formStatusMessage = 'Form was submitted and the data is bad';
+		}
     }
     return $formStatusMessage;
 }
 
-# returns data structure suitable for passing
-# to Form object constructor
-# this example covers how to handle all of the various
-# types of form inputs with WWW::Form
+# returns data structure suitable for passing to WWW::Form object constructor
+# this example covers how to handle all of the various types of form inputs
+# with WWW::Form
 sub getFormFields {
     my %fields = (
         emailAddress => {
             label        => 'Email address',
             defaultValue => '',
-	    type         => 'text',
-            validators   => [WWW::FieldValidator->new(
-                                WWW::FieldValidator::WELL_FORMED_EMAIL,
-                                'Make sure email address is well formed')]
+			type         => 'text',
+            validators   => [
+				WWW::FieldValidator->new(
+                    WWW::FieldValidator::WELL_FORMED_EMAIL,
+                    'Make sure email address is well formed'
+				)
+			]
         },
-        name => {
+		name => {
             label        => 'Full name',
-	    defaultValue => '',
-	    type         => 'text',
-            validators   => [WWW::FieldValidator->new(
-                                WWW::FieldValidator::MIN_STR_LENGTH,
-                                'Please enter your name (at least 3 characters)', 3)]
-	},
+			defaultValue => '',
+			type         => 'text',
+            validators   => [
+				WWW::FieldValidator->new(
+                    WWW::FieldValidator::MIN_STR_LENGTH,
+                    'Please enter your name (at least 3 characters)',
+					3
+				)
+			]
+        },
         aHiddenInput => {
             label        => '',
-	    defaultValue => 'Hey, I am a hidden form input, nice to meet you!',
-	    type         => 'hidden',
+            defaultValue => 'Hey, I am a hidden form input, nice to meet you!',
+            type         => 'hidden',
             validators   => []
-	},
+        },
         password => {
             label        => 'Password',
-	    defaultValue => '',
-	    type         => 'password',
-            validators   => [WWW::FieldValidator->new(
-                                WWW::FieldValidator::MIN_STR_LENGTH,
-                                'Password must be at least 6 characters', 6)]
-	},
+            defaultValue => '',
+            type         => 'password',
+            validators   => [
+                WWW::FieldValidator->new(
+                    WWW::FieldValidator::MIN_STR_LENGTH,
+                    'Password must be at least 6 characters',
+                    6
+                )
+            ]
+        },
         passwordConfirm => {
             label        => 'Confirm password',
-	    defaultValue => '',
-	    type         => 'password',
-            validators   => [WWW::FieldValidator->new(
-                                WWW::FieldValidator::MIN_STR_LENGTH,
-                                'Password confirm must be at least 6 characters', 6),
-			     WWW::FieldValidator->new(
-                                WWW::FieldValidator::REGEX_MATCH,
-                                'Passwords must match', '^' . $params->{password} . '$')]
-	},
+            defaultValue => '',
+            type         => 'password',
+            validators   => [
+                WWW::FieldValidator->new(
+                    WWW::FieldValidator::MIN_STR_LENGTH,
+                    'Password confirm must be at least 6 characters',
+                    6
+                ),
+                WWW::FieldValidator->new(
+                    WWW::FieldValidator::REGEX_MATCH,
+                    'Passwords must match', '^' . $params->{password} . '$'
+                )
+            ]
+        },
+		uploadFile => {
+			label => 'Select a file to upload',
+			defaultValue => '',
+			type => 'file',
+			validators => []
+		},
         spam => {
             label          => 'Do we have your permission to send you spam?',
-	    defaultValue   => 'Yes, spam me.',
-	    defaultChecked => 0, # set to 1 to check by default
-	    type           => 'checkbox',
+            defaultValue   => 'Yes, spam me.',
+            defaultChecked => 0, # set to 1 to check by default
+            type           => 'checkbox',
             validators     => []
-	},
+        },
         comments => {
             label        => 'Comments',
-	    defaultValue => '',
-	    type         => 'textarea',
-            validators   => [WWW::FieldValidator->new(
-                                WWW::FieldValidator::MIN_STR_LENGTH,
-                                "If you're going to say something, how about at least 10 characters?",
-				10,
-				my $isOptional = 1)]
-	},
+            defaultValue => '',
+            type         => 'textarea',
+            validators   => [
+                WWW::FieldValidator->new(
+                    WWW::FieldValidator::MIN_STR_LENGTH,
+                    "If you're going to say something, how about at least 10" .
+                    " characters?",
+                    10,
+                    my $isOptional = 1
+                )
+            ]
+        },
         favoriteColor => {
             label        => 'Favorite color',
-	    defaultValue => '', # set to 'green', 'red', or 'blue' to set default option group
-	    type         => 'select',
-            optionsGroup => [{label => 'Green', value => 'green'},
-			     {label => 'Red',   value => 'red'},
-			     {label => 'Blue',  value => 'blue'}],
+            # set to 'green', 'red', or 'blue' to set default option group
+            defaultValue => '',
+            type         => 'select',
+            optionsGroup => [
+                {label => 'Green', value => 'green'},
+                {label => 'Red',   value => 'red'},
+                {label => 'Blue',  value => 'blue'}
+            ],
             validators   => []
-	},
+        },
         elvisOrBeatles => {
             label        => 'Do you like Elvis or the Beatles',
-	    defaultValue => 'I am a Beatles dude(tte)', # uncomment to leave group unchecked by default
-	    type         => 'radio',
-            optionsGroup => [{label => 'I like Elvis',       value => "I am an Elvis dude(tte)"},
-			     {label => 'I like the Beatles', value => "I am a Beatles dude(tte)"}],
+            # uncomment to leave group unchecked by default
+            defaultValue => 'I am a Beatles dude(tte)',
+            type         => 'radio',
+            optionsGroup => [
+                {
+                    label => 'I like Elvis',
+                    value => "I am an Elvis dude(tte)"
+                },
+                {
+                    label => 'I like the Beatles',
+                    value => "I am a Beatles dude(tte)"
+                }
+            ],
             validators   => []
-	}
+        }
     );
     return \%fields;
 }
 
-# Array ref that is used to display
-# form inputs in the order specified
-# by this array ref, elements of this array
-# should correspond to keys of getFormFields
+# Array ref that is used to display form inputs in the order specified by this
+# array ref, elements of this array should correspond to keys of getFormFields
 sub getFieldsOrder {
     my @fields_order = qw(
         name
@@ -189,7 +223,8 @@ sub getFieldsOrder {
         aHiddenInput
         password
         passwordConfirm
-        comments
+        uploadFile
+		comments
         favoriteColor
         elvisOrBeatles
         spam
