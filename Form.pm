@@ -1,14 +1,10 @@
-# $Id$
 
-# Form.pm is an object-oriented module that
-# should provide a common and easy framework
-# for handling HTML forms
 package WWW::Form;
 
 use strict;
 use warnings;
 
-our $VERSION = "1.05";
+our $VERSION = "1.06";
 
 =head1 NAME
 
@@ -71,7 +67,9 @@ but not in how the WWW::Form module is used, however.
     # would be $r->param() if you're using mod_perl
     my $params = $q->Vars() || {};
 
-    my $form = WWW::Form->new(get_form_fields(), $params, [&EMAIL_FIELD_NAME, &PASSWORD_FIELD_NAME]);
+    my $form = WWW::Form->new(get_form_fields(),
+                              $params,
+                              [&EMAIL_FIELD_NAME, &PASSWORD_FIELD_NAME]);
 
     # check to see that the form was submitted by the user
     # if you're using mod_perl, instead of $ENV{REQUEST_METHOD}
@@ -100,7 +98,7 @@ but not in how the WWW::Form module is used, however.
     <body>
     HTML
         # Display the form
-        $form->get_form_HTML(action => './form_test.pl');
+        print $form->get_form_HTML(action => './form_test.pl');
     print <<HTML;
     </body>
     </html>
@@ -1182,5 +1180,31 @@ sub _getSelectBoxHTML {
 }
 
 1;
+
+=head1 SEE ALSO
+
+WWW::FieldValidator
+
+=head1 AUTHOR
+
+Ben Schmaus
+
+If you find this module useful or have any suggestions or comments please
+send me an email at perlmods@benschmaus.com.
+
+=head1 BUGS
+
+None that I know of, but please let me know if you find any.
+
+Send email to perlmods@benschmaus.com.
+
+=head1 COPYRIGHT
+
+Copyright 2003, Ben Schmaus.  All Rights Reserved.
+
+This program is free software.  You may copy or redistribute it under
+the same terms as Perl itself.
+
+=cut
 
 __END__

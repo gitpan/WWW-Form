@@ -1,6 +1,5 @@
 Changes
 Form.pm
-Form.xs
 MANIFEST
 Makefile.PL
 test.pl
