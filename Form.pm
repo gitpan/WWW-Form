@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use CGI;
 
-our $VERSION = "1.14";
+our $VERSION = "1.15";
 
 =head1 NAME
 
@@ -132,6 +132,19 @@ A sample usage:
 
 =head2 Creating WWW::Form Objects
 
+As I said, instantiating a form object is the trickiest part.  The WWW::Form
+constructor takes three parameters.  The first parameter called $fieldsData,
+is a hash reference that describes how the form should be built.  $fieldsData
+should be keyed with values that are suitable for using as the value of the
+form inputs' name HTML attributes.  That is, if you call a key of your
+$fieldsData hash 'full_name', then you will have some type of form input whose
+name attribute will have the value 'full_name'. The values of the $fieldsData
+keys (i.e., $fieldsData->{$fieldName}) should also be hash references.  This
+hash reference will be used to tell the WWW::Form module about your form
+input.  All of these hash references will be structured similarly, however,
+there are a couple of variations to accommodate the various types of form
+inputs.  The basic structure is as follows:
+
  {
      # UI presentable value that will label the form input
      label => 'Your name',
@@ -156,7 +169,89 @@ A sample usage:
      hint_container_attributes => {},
  }
 
-=head2 Supported Form Inputs
+So to create a WWW::Form object with one text box you would have the
+following data structure:
+
+ my $fields = {
+     emailAddress => {
+         label        => 'Email address',
+         defaultValue => 'you@emailaddress.com',
+         type         => 'text',
+         validators   => [WWW::FieldValidator->new(
+             WWW::FieldValidator::WELL_FORMED_EMAIL,
+             'Make sure email address is well formed
+         )],
+         container_attributes => { 'class' => "green",},
+         hint => "Fill in a valid E-mail address",
+         hint_container_attributes => { 'style' => "border : double", },
+     }
+ };
+
+You could then say the following to create that WWW::Form object:
+
+  my $form = WWW::Form->new($fields);
+
+Now let's talk about the second parameter.  If a form is submitted, the second
+parameter is used.  This parameter should be a hash reference of HTTP POST
+parameters. So if the previous form was submitted you would instantiate the
+WWW::Form object like so:
+
+  my $params = $r->param(); # or $q->Vars if you're using CGI
+  my $form   = WWW::Form->new($fields, $params);
+
+At this point, let me briefly discuss how to specify validators for your form
+inputs.
+
+The validators keys in the $fieldsData->{$fieldName} hash reference can be
+left empty, which means that the user entered input does not need to be
+validated at all, or it can take a comma separated list of WWW::FieldValidator
+objects.  The basic format for a WWW::FieldValidator constructor is as follows:
+
+  WWW::FieldValidator->new(
+      $validatorType,
+      $errorFeedbackIfFieldNotValid,
+      # Optional, depends on type of validator, if input is entered validation
+      # is run, if nothing is entered input is OK
+      $otherVarThatDependsOnValidatorType,
+      $isOptional
+  )
+
+The FieldValidator types are:
+
+  WWW::FieldValidator::WELL_FORMED_EMAIL
+  WWW::FieldValidator::MIN_STR_LENGTH
+  WWW::FieldValidator::MAX_STR_LENGTH
+  WWW::FieldValidator::REGEX_MATCH
+  WWW::FieldValidator::USER_DEFINED_SUB
+
+So to create a validator for a field that would make sure the input of said
+field was a minimum length, if any input was entered, you would have:
+
+  WWW::FieldValidator->new(
+      WWW::FieldValidator::MIN_STR_LENGTH,
+      'String must be at least 6 characters',
+      6, # input must be at least 6 chars
+      # input is only validated if user entered something if field left blank,
+      # it's OK
+      1 # field is optional
+  )
+
+Now for the third parameter.  The third parameter is simply an array reference
+of the keys of the $fieldsData hash, but the order of elements in the array
+ref should be the order that you want your form inputs to be displayed in.
+This array ref is used by the get_form_HTML method to return a form block that
+can be displayed in an HTML page.
+
+  # The third parameter will be used to generate an HTML form whose inputs
+  # will be in the order of their appearance in the array ref, note this is
+  # the constructor format you should use when instantiating form objects
+  my $form = WWW::Form->new(
+      $fieldsData,
+      $params,
+      ['name', 'emailAddress', 'password']
+  );
+
+=head2 How To Create All The Various Form Inputs
 
 The following form input types are supported by the WWW::Form module (these
 values should be used for the 'type' key of your $fieldsData->{$fieldName}
@@ -269,6 +364,10 @@ sub new {
     $self->{fieldsOrder} = $fieldsOrder;
 
     bless($self, $class);
+
+    # Set up a fields hash ref for the fields, so we will not need 
+    # autovivificatiopn later
+    $self->{fields} = {};
 
     # Creates and populates fields hash
     $self->_setFields($fieldsData, $fieldValues);
@@ -520,7 +619,7 @@ sub getFieldValidators {
 
 Returns value of a field's 'type' key for the specified $fieldName.
 
-  Example:
+Example:
 
   my $input_type = $form->getFieldType('favoriteColor');
 
@@ -679,114 +778,153 @@ sub _setFields {
     # in the sub-classes more easily.
 
     foreach my $fieldName (keys %{$fieldsData}) {
-        # Use the supplied field value if one is given. Generally the supplied
-        # data will be a hash of HTTP POST data
-        my $fieldValue = '';
+        $self->_setField(
+            'name' => $fieldName, 
+            'params' => $fieldsData->{$fieldName},
+            'value' => $fieldValues->{$fieldName}
+        );
+    }
+}
 
-        # Only use the default value of a check box if the form has been
-        # submitted, that is, the default value should be the value that you
-        # want to show up in the POST data if the checkbox is selected when
-        # the form is submitted
-        if ($fieldsData->{$fieldName}{type} eq 'checkbox') {
+sub _getFieldInitParams
+{
+    my $self = shift;
+    
+    my %args = (@_);
+    
+    my $fieldName = $args{name};
+    my $params = $args{params};
+    my $user_given_field_value = $args{value};
 
-            # If the checkbox was selected then we're going to use the default
-            # value for the checkbox input's value in our WWW::Form object, if
-            # the checkbox was not selected and the form was submitted that
-            # variable will not show up in the hash of HTTP variables
-            if ($fieldValues->{$fieldName}) {
-                $fieldValue = $fieldsData->{$fieldName}{defaultValue};
-            }
+    # This is the output parameters that we eventually place under
+    # $out_params->. It is declared it so it can later be filled
+    # in by a different function other 
+    my $out_params = {};
 
-            # See if this checkbox should be checked by default
-            $self->{fields}{$fieldName}{defaultChecked} =
-                $fieldsData->{$fieldName}{defaultChecked};
+    # Use the supplied field value if one is given. Generally the supplied
+    # data will be a hash of HTTP POST data
+    my $fieldValue = '';
+
+    # Only use the default value of a check box if the form has been
+    # submitted, that is, the default value should be the value that you
+    # want to show up in the POST data if the checkbox is selected when
+    # the form is submitted
+    if ($params->{type} eq 'checkbox') {
+
+        # If the checkbox was selected then we're going to use the default
+        # value for the checkbox input's value in our WWW::Form object, if
+        # the checkbox was not selected and the form was submitted that
+        # variable will not show up in the hash of HTTP variables
+        if ($user_given_field_value) {
+            $fieldValue = $params->{defaultValue};
+        }
+
+        # See if this checkbox should be checked by default
+        $out_params->{defaultChecked} =
+            $params->{defaultChecked};
+    }
+    else {
+        # If a key exists in the $fieldValues hashref, use that value
+        # instead of the default, we generally want to favor displaying
+        # user entered values than defaults
+        if (defined($user_given_field_value)) {
+            $fieldValue = $user_given_field_value;
         }
         else {
-            # If a key exists in the $fieldValues hashref, use that value
-            # instead of the default, we generally want to favor displaying
-            # user entered values than defaults
-            if (exists($fieldValues->{$fieldName})) {
-                $fieldValue = $fieldValues->{$fieldName};
-            }
-            else {
-                $fieldValue = $fieldsData->{$fieldName}{defaultValue};
-            }
-        }
-
-        # Value suitable for displaying to users as a label for a form input,
-        # e.g. 'Email address', 'Full name', 'Street address', 'Phone number',
-        # etc.
-        $self->{fields}{$fieldName}{label} = $fieldsData->{$fieldName}{label};
-
-        # Holds the value that the user enters after the form is submitted
-        $self->{fields}{$fieldName}{value} = $fieldValue;
-
-        # The value to pre-populate a form input with before the form is
-        # submitted, the only exception is a checkbox form input in the case
-        # of a checkbox, the default value will be the value of the checkbox
-        # input if the check box is selected and the form is submitted, see
-        # form_test.pl for an example
-        $self->{fields}{$fieldName}{defaultValue} =
-            $fieldsData->{$fieldName}{defaultValue};
-
-        # The validators for this field, validators are used to test user
-        # entered form input to make sure that it the user entered data is
-        # acceptable
-        $self->{fields}{$fieldName}{validators} =
-            \@{$fieldsData->{$fieldName}{validators}};
-
-        # Type of the form input, i.e. 'radio', 'text', 'select', 'checkbox',
-        # etc. this is mainly used to determine what type of HTML method
-        # should be used to display the form input in a web page
-        $self->{fields}{$fieldName}{type} = $fieldsData->{$fieldName}{type};
-
-        # If any validators fail, this property will contain the error
-        # feedback associated with those failing validators
-        $self->{fields}{$fieldName}{feedback} = [];
-
-        # If the input type is a select box or a radio button then we need an
-        # array of labels and values for the radio button group or select box
-        # option groups
-        if (my $optionsGroup = $fieldsData->{$fieldName}{optionsGroup}) {
-            $self->{fields}{$fieldName}{optionsGroup} = \@{$optionsGroup};
-        }
-
-        # Arbitrary HTML attributes that will be used when the field's input
-		# element is displayed.
-        $self->{fields}{$fieldName}{extraAttributes} =
-            ($fieldsData->{$fieldName}{extraAttributes} || "");
-
-        # Add the hint
-        #
-        # 2004-Jan-04 - Added by Shlomi Fish:
-        #  Ben, no. Actually it's a hint that will always be displayed below
-        #  the table row to instruct the users what to input there. For instance
-        #  +----------+---------------------------+
-        #  |  City:   | [================]        |
-        #  +----------+---------------------------+
-        #  |  Input the city in which you live    |
-        #  |  in.                                 |
-        #  +---------------------------------------
-        #  So "Input the city..." would be the hint.
-        if (my $hint = $fieldsData->{$fieldName}{hint})
-        {
-            $self->{fields}{$fieldName}{hint} = $hint;
-        }
-
-        # Add the container_attributes. These are HTML attributes that would
-        # be added to the rows of this HTML row.
-        if (my $attribs = $fieldsData->{$fieldName}{container_attributes})
-        {
-            $self->{fields}{$fieldName}{container_attributes} = $attribs;
-        }
-
-        # Add the hint_container_attributes. These are HTML attributes that
-        # would  be added to the Hint row of this HTML row.
-        if (my $attribs = $fieldsData->{$fieldName}{hint_container_attributes})
-        {
-            $self->{fields}{$fieldName}{hint_container_attributes} = $attribs;
+            $fieldValue = $params->{defaultValue};
         }
     }
+
+    # Value suitable for displaying to users as a label for a form input,
+    # e.g. 'Email address', 'Full name', 'Street address', 'Phone number',
+    # etc.
+    $out_params->{label} = $params->{label};
+
+    # Holds the value that the user enters after the form is submitted
+    $out_params->{value} = $fieldValue;
+
+    # The value to pre-populate a form input with before the form is
+    # submitted, the only exception is a checkbox form input in the case
+    # of a checkbox, the default value will be the value of the checkbox
+    # input if the check box is selected and the form is submitted, see
+    # form_test.pl for an example
+    $out_params->{defaultValue} =
+        $params->{defaultValue};
+
+    # The validators for this field, validators are used to test user
+    # entered form input to make sure that it the user entered data is
+    # acceptable
+    $out_params->{validators} =
+        \@{$params->{validators}};
+
+    # Type of the form input, i.e. 'radio', 'text', 'select', 'checkbox',
+    # etc. this is mainly used to determine what type of HTML method
+    # should be used to display the form input in a web page
+    $out_params->{type} = $params->{type};
+
+    # If any validators fail, this property will contain the error
+    # feedback associated with those failing validators
+    $out_params->{feedback} = [];
+
+    # If the input type is a select box or a radio button then we need an
+    # array of labels and values for the radio button group or select box
+    # option groups
+    if (my $optionsGroup = $params->{optionsGroup}) {
+        $out_params->{optionsGroup} = \@{$optionsGroup};
+    }
+
+    # Arbitrary HTML attributes that will be used when the field's input
+    # element is displayed.
+    $out_params->{extraAttributes} =
+        ($params->{extraAttributes} || "");
+
+    # Add the hint
+    # 2004-Jan-04 - Added by Shlomi Fish:
+    #  Ben, no. Actually it's a hint that will always be displayed below
+    #  the table row to instruct the users what to input there. For instance
+    #  +----------+---------------------------+
+    #  |  City:   | [================]        |
+    #  +----------+---------------------------+
+    #  |  Input the city in which you live    |
+    #  |  in.                                 |
+    #  +---------------------------------------
+    #  So "Input the city..." would be the hint.
+    if (my $hint = $params->{hint})
+    {
+        $out_params->{hint} = $hint;
+    }
+
+    # Add the container_attributes. These are HTML attributes that would
+    # be added to the rows of this HTML row.
+    if (my $attribs = $params->{container_attributes})
+    {
+        $out_params->{container_attributes} = $attribs;
+    }
+
+    # Add the hint_container_attributes. These are HTML attributes that
+    # would  be added to the Hint row of this HTML row.
+    if (my $attribs = $params->{hint_container_attributes})
+    {
+        $out_params->{hint_container_attributes} = $attribs;
+    }
+
+    return $out_params;
+}
+
+# This function should not be left alone in sub-classing.
+# Instead override _getFieldInitParams() to add your own parameters
+# there.
+sub _setField
+{
+    my $self = shift;
+
+    my %args = (@_);
+
+    my $params = $self->_getFieldInitParams(%args);
+    
+    $self->{fields}{$args{name}} = $params;
+
+    return $self;
 }
 
 =head2 asString
@@ -1450,6 +1588,7 @@ or
 
   http://benschmaus.com/cgi-bin/perl/form_test_subclass_example.pl
 
+
 The following modules are related to WWW::Form and WWW::FieldValidator, you
 might want to check them out.
 
@@ -1510,6 +1649,12 @@ January 5, 2005
 Adds README file to distribution.
 
 Makes some minor documentation changes.
+
+March 29, 2005
+
+Merged the changes from the repository.
+
+Fixed the MANIFEST.
 
 =head1 TODO
 

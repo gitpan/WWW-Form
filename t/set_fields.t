@@ -2,7 +2,7 @@
 
 use strict;
 
-use CondTestMore tests => 22;
+use CondTestMore tests => 33;
 
 # TEST
 BEGIN { use_ok("WWW::Form"); }
@@ -131,3 +131,56 @@ sub make_obj
     ok((! exists($form->{fields}{comments}{hint})), "hint-comments-hint");
 }
 
+# Tests for _setField()
+{
+    my $form = make_obj();
+
+    $form->{fields} = {};
+
+    my @params = 
+    (
+        'name' => 'first_name',
+        'params' =>
+        {
+            label => "First Name",
+            defaultValue => "Daniel",
+            type => "text",
+            hint => "Type your first name here",
+        },
+        'value' => "Eran",
+    );
+
+    my $out = $form->_getFieldInitParams(@params);
+    # TEST
+    is ($out->{label}, "First Name");
+    # TEST
+    is ($out->{defaultValue}, "Daniel");
+    # TEST
+    is ($out->{type}, "text");
+    # TEST
+    is ($out->{hint}, "Type your first name here");
+    # TEST
+    is ($out->{value}, "Eran");
+
+    # Final test - make sure that $self->{fields} is unharmed.
+    # _getFieldInitParams() is a functional (as in Functional Programming)
+    # routine
+    
+    # TEST
+    ok ((scalar(keys(%{$form->{fields}})) == 0), "_getFieldInitParams() does not touches the \$self->{fields} hash");
+
+    $form->_setField(        
+        @params,
+    );
+
+    # TEST
+    is ($form->{fields}->{first_name}{label}, "First Name");
+    # TEST
+    is ($form->{fields}->{first_name}{defaultValue}, "Daniel");
+    # TEST
+    is ($form->{fields}->{first_name}{type}, "text");
+    # TEST
+    is ($form->{fields}->{first_name}{hint}, "Type your first name here");
+    # TEST
+    is ($form->{fields}->{first_name}{value}, "Eran");
+}
