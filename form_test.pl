@@ -27,7 +27,7 @@ my $q = CGI->new();
 my $params = $q->Vars();
 
 # this gets us our Form object
-my $form = getForm();
+my $form = WWW::Form->new(getFormFields(), $params, getFieldsOrder());
 
 # display the HTML form test page
 printHTMLPage();
@@ -46,10 +46,8 @@ Content-Type: text/html
 <head>
 <title>Form Test Page</title>
 </head>
-
 <body>
 HTML
-
     print "<p>WWW::Form version: $WWW::Form::VERSION<br />";
     print "WWW::FieldValidator version: $WWW::FieldValidator::VERSION</p>";
 
@@ -61,22 +59,9 @@ HTML
 
     print "\n<h2>" . getFormStatusMessage() . "</h2>\n";
 
-    print "<form action='./form_test.pl' method='post'>\n";
-    print "<table border='0' cellspacing='2' cellpadding='5'>\n";
-    print $form->get_field_HTML_row('name');
-    print $form->get_field_HTML_row('emailAddress');
-    print $form->get_field_HTML_row('password', ' size="6" ');
-    print $form->get_field_HTML_row('passwordConfirm', ' size="6" ');
-    print $form->get_field_HTML_row('comments', " rows='5' cols='40' ");
-    print $form->get_field_HTML_row('favoriteColor');
-    print $form->get_field_HTML_row('elvisOrBeatles');
-    print $form->get_field_HTML_row('spam');
-    print $form->get_field_HTML_row('aHiddenInput');
-    print "</table>\n\n";
+    print $form->getFormHTML(action => 'form_test.pl');
 
 print <<HTML;
-<input type="submit" value="Submit" />
-</form>
 </body>
 </html>
 HTML
@@ -106,17 +91,6 @@ sub getFormStatusMessage() {
 	}
     }
     return $formStatusMessage;
-}
-
-# creates and return a WWW::Form object
-sub getForm {
-    # if there are HTTP params then use those
-    # values to instantiate our Form object with
-    if ($params) {
-        return WWW::Form->new(getFormFields(), $params);
-    } else {
-        return WWW::Form->new(getFormFields());
-    }
 }
 
 # returns data structure suitable for passing
@@ -202,4 +176,23 @@ sub getFormFields {
 	}
     );
     return \%fields;
+}
+
+# Array ref that is used to display
+# form inputs in the order specified
+# by this array ref, elements of this array
+# should correspond to keys of getFormFields
+sub getFieldsOrder {
+    my @fields_order = qw(
+        name
+        emailAddress
+        aHiddenInput
+        password
+        passwordConfirm
+        comments
+        favoriteColor
+        elvisOrBeatles
+        spam
+    );
+    return \@fields_order;
 }
