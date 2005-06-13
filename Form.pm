@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use CGI;
 
-our $VERSION = "1.15";
+our $VERSION = "1.16";
 
 =head1 NAME
 
@@ -967,6 +967,15 @@ onclick='someJSFunction()', and so forth.
   );
 
 =cut
+
+sub _getFieldType
+{
+    my $self = shift;
+    my $fieldName = shift;
+
+    return $self->getField($fieldName)->{type};
+}
+
 sub getFieldFormInputHTML {
     my $self = shift;
 
@@ -978,7 +987,7 @@ sub getFieldFormInputHTML {
     # or control the size of your text inputs, for example
     my $attributesString = shift || '';
 
-    my $type = $self->getField($fieldName)->{type};
+    my $type = $self->_getFieldType($fieldName);
 
     if ($type =~ /text$|password|hidden|file/) {
 
@@ -1006,6 +1015,105 @@ sub getFieldFormInputHTML {
     }
 }
 *get_field_form_input_HTML = \&getFieldFormInputHTML;
+
+=head2 renderFieldHTMLRow
+
+    $html .= 
+        $self->renderFieldHTMLRow(
+            'fieldName' => "name",
+            'attributesString' => " class=\"hello\"",
+            'tr_attr_string' => " class=\"control\"",
+        );
+
+This function renders the field HTML row and returns the HTML.
+
+=cut
+
+=head2 getFieldLabelTdHTML
+
+Returns the opening tag of the <td> element that belongs to the label.
+
+=cut
+
+sub getFieldLabelTdHTML
+{
+    return "<td>";
+}
+
+=head2 getFieldInputTdHTML
+
+Returns the opening tag of the <td> element that belongs to the control.
+
+=cut
+
+sub getFieldInputTdHTML
+{
+    return "<td>";
+}
+
+sub renderFieldHTMLRow
+{
+    my $self = shift;
+    my (%args) = (@_);    
+    my $fieldName = $args{'fieldName'};
+    my $attributesString = $args{'attributesString'};
+    my $tr_attr_string = $args{'trAttrString'};
+    return 
+        "<tr${tr_attr_string}>" . $self->getFieldLabelTdHTML($fieldName) .
+        $self->getFieldLabel($fieldName) . "</td>" .
+        $self->getFieldInputTdHTML($fieldName) . $self->getFieldFormInputHTML(
+            $fieldName,
+            $attributesString
+        )
+        . "</td></tr>\n";
+}
+
+=head2 renderHintHTMLRow
+
+    $html .= $self->renderHintHTMLRow('name');
+
+This function renders the hint HTML row of the specified field and returns the 
+HTML.
+
+=cut
+
+
+sub renderHintHTMLRow
+{
+    my $self = shift;
+    my $fieldName = shift;
+    my (%func_args) = (@_);
+
+    my $field = $self->getField($fieldName);
+
+    my $tr_attributes = $self->getTrAttributes($fieldName);
+
+    my $form_args = $func_args{'form_args'};
+    
+    my $hint = $self->getFieldHint($fieldName);
+
+    if (defined($hint)) {
+        my %hint_attributes = ();
+        my $hint_attributes = $form_args->{'hint_container_attributes'};
+
+        if (defined($hint_attributes)) {
+            %hint_attributes = (%hint_attributes, %$hint_attributes);
+        }
+
+        %hint_attributes = (%hint_attributes, %$tr_attributes);
+
+        if (exists($field->{hint_container_attributes})) {
+            %hint_attributes = (%hint_attributes, %{$field->{hint_container_attributes}});
+        }
+
+        my $hint_attr_string = $self->_render_attributes(\%hint_attributes);
+        return "<tr${hint_attr_string}><td colspan=\"2\">$hint</td></tr>\n";
+    }
+    else
+    {
+        return "";
+    }
+}
 
 
 =head2 getFieldHTMLRow
@@ -1039,6 +1147,21 @@ The only caveat for using this method is that it must be called between
 
 =cut
 
+sub getTrAttributes
+{
+    my $self = shift;
+    my $fieldName = shift;
+    
+    my %tr_attributes = ();
+
+    my $field = $self->getField($fieldName);
+
+    if (exists($field->{container_attributes})) {
+        %tr_attributes = (%tr_attributes, %{$field->{container_attributes}});
+    }
+    return \%tr_attributes;
+}
+
 sub _render_attributes {
     my $self = shift;
     my $attribs = shift;
@@ -1051,10 +1174,21 @@ sub _render_attributes {
             );
 }
 
+sub getTrAttrString
+{
+    my $self = shift;
+    my $fieldName = shift;
+    return $self->_render_attributes($self->getTrAttributes($fieldName));
+}
 
 sub getFieldHTMLRow {
     my $self = shift;
     my $fieldName = shift;
+
+    if ($self->_getFieldType($fieldName) eq "hidden")
+    {
+        return "";
+    }
 
     my %func_args = (@_);
     my $attributesString = $func_args{'attributesString'};
@@ -1068,46 +1202,25 @@ sub getFieldHTMLRow {
 
     my $html = "";
 
-    my %tr_attributes = ();
-
-    if (exists($field->{container_attributes})) {
-        %tr_attributes = (%tr_attributes, %{$field->{container_attributes}});
-    }
-
-    my $tr_attr_string = $self->_render_attributes(\%tr_attributes);
+    my $tr_attr_string = $self->getTrAttrString($fieldName);
+    
     foreach my $error (@feedback) {
         $html .= "<tr${tr_attr_string}><td colspan='2'>"
             . "<span style='color: #ff3300'>$error</span>"
             . "</td></tr>\n";
     }
 
-    $html .= "<tr${tr_attr_string}><td>" .
-        $self->getFieldLabel($fieldName) . "</td>"
-        . "<td>" . $self->getFieldFormInputHTML(
+    $html .= $self->renderFieldHTMLRow(
+        'fieldName' => $fieldName,
+        'attributesString' => $attributesString,
+        'trAttrString' => $tr_attr_string,
+        );
+
+    $html .= 
+        $self->renderHintHTMLRow(
             $fieldName,
-            $attributesString
-        )
-        . "</td></tr>\n";
-
-    my $hint = $self->getFieldHint($fieldName);
-
-    if (defined($hint)) {
-        my %hint_attributes = ();
-        my $hint_attributes = $form_args->{'hint_container_attributes'};
-
-        if (defined($hint_attributes)) {
-            %hint_attributes = (%hint_attributes, %$hint_attributes);
-        }
-
-        %hint_attributes = (%hint_attributes, %tr_attributes);
-
-        if (exists($field->{hint_container_attributes})) {
-            %hint_attributes = (%hint_attributes, %{$field->{hint_container_attributes}});
-        }
-
-        my $hint_attr_string = $self->_render_attributes(\%hint_attributes);
-        $html .= "<tr${hint_attr_string}><td colspan=\"2\">$hint</td></tr>\n";
-    }
+            'form_args' => $form_args,
+        );
 
     return $html;
 }
@@ -1291,10 +1404,25 @@ API documentation for getSubmitButtonHTML() for more info on this parameter.
   );
 
 =cut
+
+sub getHiddenFieldsHTML
+{
+    my $self = shift;
+
+    return 
+        join("", 
+            (map { $self->_getInputHTML($_, "") . "\n" }
+            grep { $self->_getFieldType($_) eq "hidden" }
+            (@{$self->getFieldsOrder()}))
+        );
+}
+
 sub getFormHTML {
     my ($self, %args) = @_;
 
     my $html = $self->startForm(%args) . "\n";
+
+    $html .= $self->getHiddenFieldsHTML();
     $html .= "<table>\n";
 
     # Go through all of our form fields and build an HTML input for each field
