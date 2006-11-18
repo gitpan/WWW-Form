@@ -6,7 +6,7 @@ use warnings;
 use Data::Dumper;
 use CGI;
 
-our $VERSION = "1.16";
+our $VERSION = "1.17";
 
 =head1 NAME
 
@@ -39,6 +39,17 @@ inherited from, so you can add your own features
 =item * Can be used in both mod_perl and CGI environments
 
 =back
+
+The most time consuming part (and it's not too bad) of WWW::Form usage is
+creating the data structure used for instantiating a WWW::Form object. Once you
+have a WWW::Form object instance configured, almost all your work is done as it
+will have enough information to handle a variety of HTML form-related tasks.
+
+Before we get too involved in the details, let's take a look at a sample
+usage of the WWW::Form module in a typical setting. The following example
+uses CGI instead of mod_perl, so if you're using mod_perl, certain pieces
+of the code would look a little different. The WWW::Form module is used
+the same way in both environments (CGI or mod_perl), though.
 
 A sample usage:
 
@@ -132,18 +143,17 @@ A sample usage:
 
 =head2 Creating WWW::Form Objects
 
-As I said, instantiating a form object is the trickiest part.  The WWW::Form
-constructor takes three parameters.  The first parameter called $fieldsData,
-is a hash reference that describes how the form should be built.  $fieldsData
-should be keyed with values that are suitable for using as the value of the
-form inputs' name HTML attributes.  That is, if you call a key of your
-$fieldsData hash 'full_name', then you will have some type of form input whose
-name attribute will have the value 'full_name'. The values of the $fieldsData
-keys (i.e., $fieldsData->{$fieldName}) should also be hash references.  This
-hash reference will be used to tell the WWW::Form module about your form
-input.  All of these hash references will be structured similarly, however,
-there are a couple of variations to accommodate the various types of form
-inputs.  The basic structure is as follows:
+The WWW::Form constructor takes three parameters.  The first parameter called
+$fieldsData, is a hash reference that describes how the form should be built.
+$fieldsData should be keyed with values that are suitable for using as the
+value of the form inputs' name HTML attributes.  That is, if you call a key of
+your $fieldsData hash 'full_name', then you will have some type of form input
+whose name attribute will have the value 'full_name'. The values of the
+$fieldsData keys (i.e., $fieldsData->{$fieldName}) should also be hash
+references.  This hash reference will be used to tell the WWW::Form module
+about your form input.  All of these hash references will be structured
+similarly, however, there are a couple of variations to accommodate the various
+types of form inputs.  The basic structure is as follows:
 
  {
      # UI presentable value that will label the form input
@@ -322,6 +332,12 @@ internalCapsStyle and underscore_separated_style. So 'isSubmitted' is also
 available as 'is_submitted', and 'getFieldHTMLRow' is also available as
 'get_field_HTML_row', and so on and so forth.
 
+Many convenience methods for displaying HTML form data including
+form inputs, labels, and error feedback are provided. You do not need to use
+these methods to display your form inputs, but they should be
+flexible enough to handle most cases.
+
+
 =head2 new
 
 Creates a WWW::Form object.  $fieldsData is a hash reference that describes
@@ -339,6 +355,7 @@ display your form inputs by hand.
   my $form = WWW::Form->new($fieldsData, $params, $fieldsOrder);
 
 =cut
+
 sub new {
     my $class = shift;
 
@@ -395,6 +412,7 @@ can just use your hash ref of HTTP $params, i.e. $r->param()).
   }
 
 =cut
+
 sub validateFields {
     my $self   = shift;
 
@@ -461,6 +479,13 @@ sub validateFields {
     # Return hash ref of valid fields
     return \%validFields;
 }
+
+=head2 validate_fields
+
+An alias for validateFields.
+
+=cut
+
 *validate_fields = \&validateFields;
 
 
@@ -473,10 +498,18 @@ Returns hash ref of fields data.
   my $fields = $form->getFields();
 
 =cut
+
 sub getFields {
     my $self = shift;
     return $self->{fields};
 }
+
+=head2 get_fields
+
+An alias for getFields.
+
+=cut
+
 *get_fields = \&getFields;
 
 
@@ -489,6 +522,7 @@ Resets values and default values for all fields
   $form->resetFields(include_defaults => 1);
 
 =cut
+
 sub resetFields {
     my ($self, %args) = @_;
     my $fields = $self->getFields();
@@ -500,6 +534,13 @@ sub resetFields {
             if ($args{include_defaults});
     }
 }
+
+=head2 reset_fields
+
+An alias for resetFields.
+
+=cut
+
 *reset_fields = \&resetFields;
 
 
@@ -514,11 +555,19 @@ $fieldsData hash ref you used to construct your WWW::Form instance).
   my $field = $form->getField('address');
 
 =cut
+
 sub getField {
     my $self      = shift;
     my $fieldName = shift;
     return $self->{fields}{$fieldName};
 }
+
+=head2 get_field
+
+An alias for getField.
+
+=cut
+
 *get_field = \&getField;
 
 
@@ -532,6 +581,7 @@ $fieldName.
   my $name_feedback = $form->getFieldErrorFeedback('fullName');
 
 =cut
+
 sub getFieldErrorFeedback {
     my $self      = shift;
     my $fieldName = shift;
@@ -545,6 +595,13 @@ sub getFieldErrorFeedback {
         return ();
     }
 }
+
+=head2 get_field_error_feedback
+
+An alias for getFieldErrorFeedback.
+
+=cut
+
 *get_field_error_feedback = \&getFieldErrorFeedback;
 
 
@@ -557,10 +614,18 @@ Returns array ref of field names in the order that they will be displayed.
   $form->getFieldsOrder();
 
 =cut
+
 sub getFieldsOrder {
     my $self = shift;
     return $self->{fieldsOrder};
 }
+
+=head2 get_fields_order
+
+An alias for getFieldsOrder.
+
+=cut
+
 *get_fields_order = \&getFieldsOrder;
 
 
@@ -573,11 +638,19 @@ Returns the current value of the specified $fieldName.
   $form->getFieldValue('comments');
 
 =cut
+
 sub getFieldValue {
     my $self      = shift;
     my $fieldName = shift;
     return $self->getField($fieldName)->{value};
 }
+
+=head2 get_field_value
+
+An alias for getFieldValue.
+
+=cut
+
 *get_field_value = \&getFieldValue;
 
 
@@ -590,12 +663,20 @@ Returns 1 or 0 depending on whether or not the specified field name is valid.
   $form->isFieldValid('zip_code');
 
 =cut
+
 sub isFieldValid {
     my $self      = shift;
     my $fieldName = shift;
 
     return $self->getField($fieldName)->{isValid};
 }
+
+=head2 is_field_valid
+
+An alias for isFieldValid.
+
+=cut
+
 *is_field_valid = \&isFieldValid;
 
 
@@ -608,10 +689,18 @@ Returns array ref of validators for the passed field name.
   $validators = $form->getFieldValidators($fieldName);
 
 =cut
+
 sub getFieldValidators {
     my ($self, $fieldName) = @_;
     return $self->getField($fieldName)->{validators};
 }
+
+=head2 get_field_validators
+
+An alias for getFieldValidators.
+
+=cut
+
 *get_field_validators = \&getFieldValidators;
 
 
@@ -624,11 +713,19 @@ Example:
   my $input_type = $form->getFieldType('favoriteColor');
 
 =cut
+
 sub getFieldType {
     my $self      = shift;
     my $fieldName = shift;
     return $self->getField($fieldName)->{type};
 }
+
+=head2 get_field_type
+
+An alias for getFieldType.
+
+=cut
+
 *get_field_type = \&getFieldType;
 
 
@@ -641,6 +738,7 @@ Returns the label associated with the specified $fieldName.
   my $ui_label = $form->getFieldLabel('favoriteBand');
 
 =cut
+
 sub getFieldLabel {
     my $self  = shift;
     my $fieldName = shift;
@@ -654,6 +752,13 @@ sub getFieldLabel {
         return $field->{label};
     }
 }
+
+=head2 get_field_label
+
+An alias for getFieldLabel.
+
+=cut
+
 *get_field_label = \&getFieldLabel;
 
 
@@ -667,6 +772,7 @@ does not exist.
   my $hint = $form->getFieldHint('favoriteBand');
 
 =cut
+
 sub getFieldHint {
     my $self  = shift;
     my $fieldName = shift;
@@ -675,6 +781,13 @@ sub getFieldHint {
 
     return $field->{hint};
 }
+
+=head2 get_field_hint
+
+An alias for getFieldHint.
+
+=cut
+
 *get_field_hint = \&getFieldHint;
 
 
@@ -688,6 +801,7 @@ you need to convert a user entered value to some other value.
   $form->setFieldValue('fullName', uc($form->getFieldValue('fullName')));
 
 =cut
+
 sub setFieldValue {
     my $self      = shift;
     my $fieldName = shift;
@@ -701,6 +815,13 @@ sub setFieldValue {
         #warn("could not find field for field name: '$fieldName'");
     }
 }
+
+=head2 set_field_value
+
+An alias for setFieldValue.
+
+=cut
+
 *set_field_value = \&setFieldValue;
 
 
@@ -722,10 +843,18 @@ Returns true if all form fields are valid or false otherwise.
   }
 
 =cut
+
 sub isValid {
     my $self = shift;
     return $self->{isValid};
 }
+
+=head2 is_valid
+
+An alias for isValid.
+
+=cut
+
 *is_valid = \&isValid;
 
 
@@ -744,6 +873,7 @@ to override this method in a subclass.
   }
 
 =cut
+
 sub isSubmitted {
     my $self = shift;
 
@@ -760,6 +890,13 @@ sub isSubmitted {
         return 0;
     }
 }
+
+=head2 is_submitted
+
+An alias for isSubmitted.
+
+=cut
+
 *is_submitted = \&isSubmitted;
 
 
@@ -936,13 +1073,27 @@ Returns a string representation of the current instance.
   &LOG->debug("WWW::Form instance: " . $form->asString());
 
 =cut
+
 sub asString {
     my $self = shift;
     return Data::Dumper::Dumper($self);
 }
+
+=head2 as_string
+
+An alias for asString.
+
+=cut
+
 *as_string = \&asString;
 
+sub _getFieldType
+{
+    my $self = shift;
+    my $fieldName = shift;
 
+    return $self->getField($fieldName)->{type};
+}
 
 #-----------------------------------------------------------------------------
 # Convenience methods for displaying HTML form data including form inputs,
@@ -967,14 +1118,6 @@ onclick='someJSFunction()', and so forth.
   );
 
 =cut
-
-sub _getFieldType
-{
-    my $self = shift;
-    my $fieldName = shift;
-
-    return $self->getField($fieldName)->{type};
-}
 
 sub getFieldFormInputHTML {
     my $self = shift;
@@ -1014,20 +1157,15 @@ sub getFieldFormInputHTML {
         return $self->_getTextAreaHTML($fieldName, $attributesString);
     }
 }
-*get_field_form_input_HTML = \&getFieldFormInputHTML;
 
-=head2 renderFieldHTMLRow
+=head2 get_field_form_input_HTML
 
-    $html .= 
-        $self->renderFieldHTMLRow(
-            'fieldName' => "name",
-            'attributesString' => " class=\"hello\"",
-            'tr_attr_string' => " class=\"control\"",
-        );
-
-This function renders the field HTML row and returns the HTML.
+An alias for getFieldFormInputHTML.
 
 =cut
+
+*get_field_form_input_HTML = \&getFieldFormInputHTML;
+
 
 =head2 getFieldLabelTdHTML
 
@@ -1051,6 +1189,19 @@ sub getFieldInputTdHTML
     return "<td>";
 }
 
+=head2 renderFieldHTMLRow
+
+    $html .= 
+        $self->renderFieldHTMLRow(
+            'fieldName' => "name",
+            'attributesString' => " class=\"hello\"",
+            'tr_attr_string' => " class=\"control\"",
+        );
+
+This function renders the field HTML row and returns the HTML.
+
+=cut
+
 sub renderFieldHTMLRow
 {
     my $self = shift;
@@ -1072,11 +1223,21 @@ sub renderFieldHTMLRow
 
     $html .= $self->renderHintHTMLRow('name');
 
+    or
+    
+    $html .= $self->renderHintHTMLRow(
+        'name',
+        form_args => {
+            hint_container_attributes => {
+                class => 'FormBlueBackground'
+            }
+        }
+    );    
+
 This function renders the hint HTML row of the specified field and returns the 
 HTML.
 
 =cut
-
 
 sub renderHintHTMLRow
 {
@@ -1086,7 +1247,7 @@ sub renderHintHTMLRow
 
     my $field = $self->getField($fieldName);
 
-    my $tr_attributes = $self->getTrAttributes($fieldName);
+    my $tr_attributes = $self->_getTrAttributes($fieldName);
 
     my $form_args = $func_args{'form_args'};
     
@@ -1115,39 +1276,7 @@ sub renderHintHTMLRow
     }
 }
 
-
-=head2 getFieldHTMLRow
-
-Note: Need to make sure you can pass in attributesString param unnamed!
-
-    $self->getFieldHTMLRow($fieldName,
-        'attributesString' => $attributesString,
-        'form_args' => \%form_args,
-    );
-
-Returns HTML to display in a web page.  $fieldName is a key of the $fieldsData
-hash that was used to create a WWW::Form object. $attributesString is an
-(optional) arbitrary string of HTML attribute key='value' pairs that you can
-use to add attributes to the form input. %form_args are the parameters
-passed to the form as a whole, and this function will extract relevant
-parameters out of there.
-
-The only caveat for using this method is that it must be called between
-<table> and </table> tags.  It produces the following output:
-
-  <!-- NOTE: The error feedback row(s) are only displayed if the field -->
-  <!-- input was not valid -->
-  <tr>
-  <td colspan="2">$errorFeedback</td>
-  </tr>
-  <tr>
-  <td>$fieldLabel</td>
-  <td>$fieldFormInput</td>
-  </tr>
-
-=cut
-
-sub getTrAttributes
+sub _getTrAttributes
 {
     my $self = shift;
     my $fieldName = shift;
@@ -1174,12 +1303,47 @@ sub _render_attributes {
             );
 }
 
-sub getTrAttrString
+sub _getTrAttrString
 {
     my $self = shift;
     my $fieldName = shift;
-    return $self->_render_attributes($self->getTrAttributes($fieldName));
+    return $self->_render_attributes($self->_getTrAttributes($fieldName));
 }
+
+=head2 getFieldHTMLRow
+
+    $self->getFieldHTMLRow(
+         $fieldName,
+        'attributesString' => $attributesString,
+        'form_args' => \%form_args,
+    );
+
+Returns HTML to display in a web page.  $fieldName is a key of the $fieldsData
+hash that was used to create a WWW::Form object.
+
+Arguments:
+
+attributesString - Optional arbitrary string of HTML attribute key='value'
+pairs that you can use to add attributes to the form input.
+
+form_args - The parameters passed to getFormHtml(). This function
+will extract the hint_container_attributes value if it's set.  More at
+renderHintHTMLRow().
+
+The only caveat for using this method is that it must be called between
+<table> and </table> tags.  It produces the following output:
+
+  <!-- NOTE: The error feedback row(s) are only displayed if the field -->
+  <!-- input was not valid -->
+  <tr>
+  <td colspan="2">$errorFeedback</td>
+  </tr>
+  <tr>
+  <td>$fieldLabel</td>
+  <td>$fieldFormInput</td>
+  </tr>
+
+=cut
 
 sub getFieldHTMLRow {
     my $self = shift;
@@ -1187,7 +1351,7 @@ sub getFieldHTMLRow {
 
     if ($self->_getFieldType($fieldName) eq "hidden")
     {
-        return "";
+        return $self->_getHiddenFieldHTMLRow($fieldName);
     }
 
     my %func_args = (@_);
@@ -1202,7 +1366,7 @@ sub getFieldHTMLRow {
 
     my $html = "";
 
-    my $tr_attr_string = $self->getTrAttrString($fieldName);
+    my $tr_attr_string = $self->_getTrAttrString($fieldName);
     
     foreach my $error (@feedback) {
         $html .= "<tr${tr_attr_string}><td colspan='2'>"
@@ -1224,8 +1388,46 @@ sub getFieldHTMLRow {
 
     return $html;
 }
+
+=head2 get_field_HTML_row
+
+An alias for getFieldHTMLRow.
+
+=cut
+
 *get_field_HTML_row = \&getFieldHTMLRow;
 
+=head2 getFieldHTMLRowNoHidden
+
+This method is identical to C<getFieldHTMLRow()> except that it returns
+an empty string if the field type is "hidden". This method can be used if
+you are rendering the hidden elements outside the main form table. This prevents
+hidden inputs from being displayed twice.
+
+=cut
+
+sub getFieldHTMLRowNoHidden
+{
+    my $self = shift;
+    my $fieldName = shift;
+
+    if ($self->_getFieldType($fieldName) eq "hidden")
+    {
+        return "";
+    }
+    else
+    {
+        return $self->getFieldHTMLRow($fieldName);
+    }
+}
+
+=head2 get_field_HTML_row_no_hidden
+
+An alias for getFieldHTMLRowNoHidden.
+
+=cut
+
+*get_field_HTML_row_no_hidden = \&getFieldHTMLRowNoHidden;
 
 =head2 getFieldFeedbackHTML
 
@@ -1252,6 +1454,7 @@ styles your error messages appropriately.
   $html .= $form->getFieldFeedbackHTML('emailAddress');
 
 =cut
+
 sub getFieldFeedbackHTML {
     my $self      = shift;
     my $fieldName = shift;
@@ -1267,6 +1470,13 @@ sub getFieldFeedbackHTML {
 
     return $feedbackHTML;
 }
+
+=head2 get_field_feedback_HTML
+
+An alias for getFieldFeedbackHTML.
+
+=cut
+
 *get_field_feedback_HTML = \&getFieldFeedbackHTML;
 
 
@@ -1302,6 +1512,7 @@ Returns HTML similar to:
         class='MyFormClass'>
 
 =cut
+
 sub startForm {
     my ($self, %args) = @_;
 
@@ -1331,6 +1542,13 @@ sub startForm {
 
     return $html . '>';
 }
+
+=head2 start_form
+
+An alias for startForm.
+
+=cut
+
 *start_form = \&startForm;
 
 
@@ -1343,10 +1561,18 @@ Returns HTML to close form.
   $html .= $form->endForm();
 
 =cut
+
 sub endForm {
     my $self = shift;
     return '</form>';
 }
+
+=head2 end_form
+
+An alias for endForm.
+
+=cut
+
 *end_form = \&endForm;
 
 
@@ -1356,6 +1582,11 @@ Loops through the fieldsOrder array and builds markup for each form input
 in your form.
 
 Returns HTML markup that when output will display your form.
+
+This method outputs a basic form layout that should be reasonably useful
+"out-of-the-box".  If you have more complex form presentation requirements
+you may use the various HTML display methods to customize your form's
+presentation.  Subclassing may also be useful for customizing form displays.
 
 Arguments:
 
@@ -1405,18 +1636,6 @@ API documentation for getSubmitButtonHTML() for more info on this parameter.
 
 =cut
 
-sub getHiddenFieldsHTML
-{
-    my $self = shift;
-
-    return 
-        join("", 
-            (map { $self->_getInputHTML($_, "") . "\n" }
-            grep { $self->_getFieldType($_) eq "hidden" }
-            (@{$self->getFieldsOrder()}))
-        );
-}
-
 sub getFormHTML {
     my ($self, %args) = @_;
 
@@ -1428,7 +1647,7 @@ sub getFormHTML {
     # Go through all of our form fields and build an HTML input for each field
     for my $fieldName (@{$self->getFieldsOrder()}) {
         #warn("field name is: $fieldName");
-        $html .= $self->getFieldHTMLRow(
+        $html .= $self->getFieldHTMLRowNoHidden(
             $fieldName,
             'form_args' => \%args,
         );
@@ -1449,9 +1668,50 @@ sub getFormHTML {
 
     return $html . $self->endForm() . "\n";
 }
+
+=head2 get_form_HTML
+
+An alias for getFormHTML.
+
+=cut
+
 *get_form_HTML = \&getFormHTML;
 
+=head2 getHiddenFieldsHTML
 
+Returns HTML to render all hidden inputs in the form.
+
+=cut
+
+sub getHiddenFieldsHTML
+{
+    my $self = shift;
+
+    return 
+        join("", 
+            (map { $self->_getInputHTML($_, "") . "\n" }
+            grep { $self->_getFieldType($_) eq "hidden" }
+            (@{$self->getFieldsOrder()}))
+        );
+}
+
+=head2 get_hidden_fields_HTML
+
+An alias for getHiddenFieldsHTML.
+
+=cut
+
+*get_hidden_fields_HTML = \&getHiddenFieldsHTML;
+
+sub _getHiddenFieldHTMLRow
+{
+    my $self = shift;
+    my $fieldName = shift;
+    return "<tr style=\"display:none\">\n" .
+        "<td></td>\n" .
+        "<td>" . $self->_getInputHTML($fieldName, "") ."</td>\n" .
+        "</tr>\n";
+}
 
 #-----------------------------------------------------------------------------
 # More private methods
@@ -1506,6 +1766,7 @@ You can use this parameter if you want your form to have multiple submit
 buttons.
 
 =cut
+
 sub getSubmitButtonHTML {
     my ($class, %args) = @_;
 
@@ -1574,6 +1835,13 @@ sub getSubmitButtonHTML {
 # We have lots of names for this method.  It used to be private, but now it's
 # public.
 *_get_submit_button_HTML = \&getSubmitButtonHTML;
+
+=head2 get_submit_button_HTML
+
+An alias for getSubmitButtonHTML.
+
+=cut
+
 *get_submit_button_HTML = \&getSubmitButtonHTML;
 *_getSubmitButtonHTML = \&getSubmitButtonHTML;
 
@@ -1784,18 +2052,45 @@ Merged the changes from the repository.
 
 Fixed the MANIFEST.
 
+June 8, 2006
+
+Updates docs.
+
+Adds new methods for dealing with hidden form inputs.
+
+November 18, 2006 - WWW::Form 1.17
+
+Adds support for select boxes with 'multiple' attribute set.  Note that this 
+needs to be tested in a mod_perl environment.
+
+Fixed CondTestMore to adapt it to the new Test::More.
+
+Removed test.pl in favor of t/00-load.t.
+
+Moved the modules under lib/ to improve the kwalitee.
+
+Moved CondTestMore under t/lib (kwalitee).
+
+Moved form_test.pl to the examples/ directory (kwalitee.)
+
+Added a LICENSE section to the PODs.
+
+Added t/pod.t (kwalitee).
+
+Added t/pod-coverage.t and made the POD have full coverage (for the kwalitee.)
+
 =head1 TODO
 
 Add more helpful error logging.
 
-Add functionality for generating client side validation.
-
 Give this module a better namespace?
 
-=head2 Extension Idea
+=head2 Extension Ideas
 
 Write a subclass that supports a templating library like Text::MicroMason
 or Text::Template.
+
+Add functionality for generating and performing client side validation.
 
 =head1 THANKS
 
@@ -1803,13 +2098,21 @@ Thanks to Shlomi Fish for suggestions and code submissions.
 
 =head1 BUGS
 
-Nothing that I'm aware of, but please let me know if you have any problems.
+Please report them. :)
 
-Send email to perlmods@benschmaus.com.
+Bug reports can be filed at:
 
-=head1 COPYRIGHT
+https://developer.berlios.de/bugs/?group_id=2352
 
-Copyright 2003, Ben Schmaus.  All Rights Reserved.
+Or you can send email to perlmods at benschmaus dot com.
+
+=head1 SVN
+
+WWW::Form source code can be obtained via anonymous svn access at:
+
+http://svn.berlios.de/wsvn/web-cpan/www-form
+
+=head1 LICENSE
 
 This program is free software.  You may copy or redistribute it under the same
 terms as Perl itself.
